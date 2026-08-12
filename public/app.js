@@ -149,8 +149,9 @@ function home() {
   if (s === "obs") h = `${P}
     <h1>Sırada tek bir adım var: OBS kaydı.</h1>
     <p class="sub">OBS'de staj dersini seçmen gerekiyor — yoksa stajın nota işlenemez.</p>
-    <div class="box info"><b>1.</b> OBS'ye gir<br><b>2.</b> Ders kaydı → <b>“Staj I”</b> dersini seç<br><b>3.</b> Onayla</div>
-    <button class="big" onclick="markObs()">OBS kaydımı yaptım ✓</button>`;
+    <div class="box info"><b>1.</b> OBS'ye gir<br><b>2.</b> Ders kaydı → <b>“Staj ${a.staj_no === 2 ? "II" : "I"}”</b> dersini seç<br><b>3.</b> Onayla</div>
+    <button class="big" onclick="markObs()">OBS kaydımı yaptım ✓</button>
+    <p class="after">Bunu işaretleyince staj başlangıcına kadar yapman gereken başka bir şey kalmıyor.</p>`;
 
   if (s === "ready") h = `${P}
     <h1>Her şey hazır 🎒</h1>
@@ -189,9 +190,17 @@ function home() {
     <div class="center"><div class="icon">🎓</div></div>
     <h1 class="center">Stajın kabul edildi!</h1>
     <p class="sub center">Her şey tamamlandı. Yapman gereken başka bir şey yok.</p>
-    <div class="box info center">Staj notun OBS'ye işlenince orada görünecek.</div>`;
+    <div class="box info center">Staj notun OBS'ye işlenince orada görünecek.${a.staj_no < 2 ? " İkinci stajın için hazır olduğunda buradan yeni başvuru açabileceksin." : ""}</div>`;
 
-  el(notifs + h);
+  // Bağlamsal yardım: her ekranın altında, bulunduğun aşamayla ilgili SSS'ye götürür.
+  const TOPIC = { noplace: "staj yeri", draft: "başvuru", review: "başvuru", fix: "belge",
+    sgk: "SGK", obs: "OBS", ready: "staj", during: "staj defteri", deliver: "defter teslim",
+    fix_defter: "defter", evaluating: "değerlendirme", rejected: "başvuru" };
+  const takildin = TOPIC[s]
+    ? `<p class="hint" style="margin-top:26px;text-align:center">Takıldın mı?
+       <button class="link" onclick="helpScreen('${TOPIC[s]}')">Bu aşamayla ilgili sık sorulan sorular</button></p>` : "";
+
+  el(notifs + h + takildin);
 }
 
 
@@ -450,7 +459,8 @@ function sgkScreen() {
       <b>2.</b> Ara: <b>“SGK Tescil ve Hizmet Dökümü”</b><br>
       <b>3.</b> Listede staj başlangıç tarihinle bir kayıt olmalı</div>
     <button class="big" onclick="markSgk(true)">Kaydımı gördüm ✓</button>
-    <button class="quiet" onclick="markSgk(false)">Kaydımı göremiyorum</button>`);
+    <button class="quiet" onclick="markSgk(false)">Kaydımı göremiyorum</button>
+    <p class="after">“Gördüm” dersen sıradaki adımın OBS kaydı. “Göremiyorum” dersen durumu bölüme biz iletiriz — sana bir iş düşmez.</p>`);
 }
 async function markSgk(seen) {
   const r = await api("/sgk", { method: "POST", json: { seen } });
@@ -467,9 +477,11 @@ async function markSicil(v) { await api("/sicil", { method: "POST", json: { deli
 
 function deliverScreen() {
   nav("home");
-  const items = ["Her staj günü için sayfa var (20 gün = 20 sayfa)",
-    "Bütün sayfalar imzalı ve kaşeli", "Kapak sayfası ekli",
-    "Vlog bağlantısı ve QR kod son sayfada", "PDF net okunuyor"];
+  const total = ME.progress?.total || 20;
+  const items = [`Her staj günü için ayrı sayfa hazırladım (${total} iş günü = ${total} sayfa)`,
+    "Bütün sayfaları işyeri sorumlusu imzaladı", "Gerekli kaşeler sayfalarda var",
+    "Kapak sayfasını ekledim", "Vlog bağlantısı ve QR kodu son sayfada",
+    "PDF net okunuyor (bulanık/karanlık sayfa yok)", "Dosya boyutu 10 MB'ın altında"];
   el(`${back}
     <h1>Defterini yüklemeden önce kontrol et.</h1>
     <p class="sub">Eksik defterler geri döner — bu liste seni ondan kurtarır.</p>
@@ -481,47 +493,147 @@ function deliverScreen() {
         onchange="api('/sicil',{method:'POST',json:{delivered:this.checked}})"> Zarfı teslim ettim</label></div>`);
 }
 function chk() {
-  const boxes = [...document.querySelectorAll("main .check input")].slice(0, 5);
+  const boxes = [...document.querySelectorAll("main .check input")].slice(0, 7);
   const all = boxes.every(b => b.checked);
   $("upBtn").disabled = !all;
   $("upWhy").textContent = all ? "Hazırsın — gönderebilirsin." : "Listeyi tamamlayınca buton açılır.";
 }
 
-/* ───────── Belgelerim ───────── */
+/* ───────── Belgelerim: her belge 8 sorusuyla ───────── */
+// Belge kartı standardı: öğrenci hiçbir belge için "bu ne, kim imzalar?" diye sormak zorunda kalmaz.
+const belgeKart = (b) => `
+  <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${b.icon} ${b.ad}
+    ${b.resmi ? `<span class="muted" style="font-weight:400">· ${b.resmi}</span>` : ""}</div>
+  <div class="a"><table style="width:100%;border-collapse:collapse;font-size:14.5px">
+    ${[["Bu belge nedir?", b.nedir], ["Neden gerekiyor?", b.neden], ["Kim dolduracak?", b.doldurur],
+       ["Kim imzalayacak?", b.imzalar], ["Kaşe gerekiyor mu?", b.kase], ["Ne zaman hazırlanmalı?", b.nezaman],
+       ["Nereye teslim edilecek?", b.nereye]]
+      .filter(([, v]) => v)
+      .map(([k, v]) => `<tr><td style="padding:5px 10px 5px 0;font-weight:600;white-space:nowrap;vertical-align:top">${k}</td>
+        <td style="padding:5px 0">${v}</td></tr>`).join("")}
+  </table>
+  ${b.ornek ? `<button class="link" style="font-size:14px" onclick="alert('Örnek belgeler canlı sürümde buraya eklenecek.')">Örnek doldurulmuş belgeyi gör</button>` : ""}
+  </div></div>`;
+
+const BELGELER = {
+  "Başvurudan önce gerekenler": [
+    { icon: "📄", ad: "Staj kabul belgesi", resmi: "EK-1 (yaz) / EK-1A (dönem içi)",
+      nedir: "Staj yapacağın işletmenin seni stajyer olarak kabul ettiğini gösteren belge.",
+      neden: "Komisyon staj yerinin uygunluğunu bununla değerlendirir; sigorta girişin buna göre yapılır.",
+      doldurur: "Üst kısmı sen, işletme bilgilerini kurum.", imzalar: "İşletme yetkilisi.",
+      kase: "<b>Evet</b> — işletme kaşesi zorunlu.", nezaman: "Başvurudan önce (başvuruda yükleyeceksin).",
+      nereye: "Bu sisteme yüklenir; elden teslim gerekmez.", ornek: true },
+    { icon: "📄", ad: "Ücret katkısı bilgi formu", resmi: "EK-2",
+      nedir: "İşletme sana staj ücreti ödeyecekse devlet katkısı için gereken form.",
+      neden: "Ücret ödemesinin İşsizlik Fonu katkısıyla desteklenmesi için gerekir.",
+      doldurur: "İşletme — bütün alanlar eksiksiz.", imzalar: "İşletme yetkilisi.", kase: "Evet.",
+      nezaman: "Yalnızca 'ücret ödenecek' dediysen; başvuruyla birlikte.",
+      nereye: "Bu sisteme yüklenir.", ornek: true },
+    { icon: "📘", ad: "Staj yönergesi ve el kitabı",
+      nedir: "Stajın bütün resmî kuralları. Sistemi kullanıyorsan çoğunu okumana gerek kalmaz — kurallar senin yerine uygulanır.",
+      nezaman: "Merak edersen her zaman; zorunlu adım değildir." },
+  ],
+  "Staj sırasında kullanacakların": [
+    { icon: "📄", ad: "Günlük staj defteri sayfası",
+      nedir: "Her staj günü için o gün ne yaptığını anlattığın sayfa.",
+      neden: "Komisyon stajını bu sayfalar üzerinden değerlendirir.",
+      doldurur: "Sen — her iş günü için bir sayfa.", imzalar: "İşyerindeki sorumlu mühendisin.",
+      kase: "Evet, sayfalarda işyeri kaşesi gerekir.",
+      nezaman: "Staj süresince <b>her gün</b>. Son güne bırakma — en çok yapılan hata bu.",
+      nereye: "Staj bitince hepsi tek PDF olarak bu sisteme yüklenir.", ornek: true },
+    { icon: "📄", ad: "Staj defteri kapağı",
+      nedir: "Ad-soyad, kurum ve tarih bilgilerini taşıyan ilk sayfa.",
+      doldurur: "Sen.", nezaman: "Defteri birleştirirken en başa eklenir.", nereye: "Defter PDF'inin ilk sayfası olur." },
+    { icon: "🎬", ad: "Vlog",
+      nedir: "Staj boyunca çektiğin kısa videolar.",
+      neden: "Staj deneyimini belgelemek için bölüm gereksinimidir.",
+      doldurur: "Sen çekersin.", nezaman: "Staj süresince; son güne bırakma.",
+      nereye: "Video bağlantısı ve QR kodu defterin <b>son sayfasına</b> eklenir." },
+  ],
+  "Teslim ederken gerekenler": [
+    { icon: "📗", ad: "Staj defteri (tamamlanmış)",
+      nedir: "Kapak + her iş günü için imzalı-kaşeli sayfalar + son sayfada vlog bağlantısı ve QR kod.",
+      doldurur: "Sen.", imzalar: "Bütün sayfalar işyeri sorumlusu tarafından imzalanmış olmalı.",
+      kase: "Evet.", nezaman: "Staj bittikten sonra, ilan edilen son tarihe kadar.",
+      nereye: "Bu sisteme PDF olarak yüklenir — teslim ekranı seni kontrol listesiyle yönlendirir." },
+    { icon: "✉️", ad: "Staj sicil fişi",
+      nedir: "İşyerinin senin hakkında doldurduğu değerlendirme formu.",
+      neden: "Staj notunun bir bileşenidir.",
+      doldurur: "İşyeri — <b>fotoğraflı</b> olmalı.", imzalar: "İşyeri yetkilisi.", kase: "Evet, zarf da kaşeli olmalı.",
+      nezaman: "Stajın son günlerinde işyerine hatırlat.",
+      nereye: "<b>Bu sisteme yüklenmez.</b> Kapalı ve kaşeli zarf içinde bölüm sekreterliğine <b>elden</b> teslim edilir." },
+  ],
+};
+
 function docsScreen() {
   nav("docs");
-  const rows = [
-    ["📄 Günlük defter sayfası", "Her staj günü için bir sayfa doldurursun; işyerindeki mühendisin imzalar. Staj bitince hepsini tek PDF yapıp buradan yüklersin."],
-    ["📄 Defter kapağı", "Ad-soyad, kurum ve tarihleri doldurup defterin başına eklersin."],
-    ["🎬 Vlog rehberi", "Staj boyunca çekeceğin kısa videoların kuralları. Bağlantı ve QR kod defterin son sayfasına eklenir."],
-    ["✉️ Sicil fişi", "İşyerinin senin hakkında doldurduğu değerlendirme. <b>Fotoğraflı</b> doldurulmalı. <b>Sisteme yüklenmez</b> — kapalı zarfla bölüm sekreterliğine elden götürülür."],
-  ];
+  // Öğrencinin aşamasına uygun belge grubu açık gelir; diğerleri bir tık uzakta.
+  const stageGroup = ["noplace", "draft", "review", "fix", "rejected"].includes(ME.stage)
+    ? "Başvurudan önce gerekenler"
+    : ["sgk", "obs", "ready", "during"].includes(ME.stage)
+      ? "Staj sırasında kullanacakların" : "Teslim ederken gerekenler";
   const mine = ME.documents.map(d =>
-    `<div class="qa open"><div class="q">✅ ${d.kind === "kabul" ? "Kabul belgen" : "Staj defterin"}</div>
-     <div class="a">${d.orig_name} · ${d.uploaded_at.slice(0, 10)} tarihinde yüklendi.</div></div>`).join("");
+    `<div class="qa open"><div class="q">✅ ${d.kind === "kabul" ? "Kabul belgen" : "Staj defterin"} — yüklendi</div>
+     <div class="a">${d.orig_name} · ${d.uploaded_at.slice(0, 10)}</div></div>`).join("");
   el(`<h1>Belgelerim</h1>
-    <p class="sub">Şu an ihtiyacın olanlar en üstte.</p>
+    <p class="sub">Bulunduğun aşamada gerekenler açık geldi. Her belgenin yanında kimin dolduracağı, kimin imzalayacağı ve nereye gideceği yazar.</p>
     ${mine}
-    ${rows.map(([q, a]) => `<div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${q}</div><div class="a">${a}</div></div>`).join("")}
+    ${Object.entries(BELGELER).map(([grup, items]) => `
+      <h1 style="font-size:17px;margin-top:22px;color:${grup === stageGroup ? "#1e40af" : "#374151"}">${grup}${grup === stageGroup ? " · şu an buradasın" : ""}</h1>
+      ${items.map(b => belgeKart(b)).join("")}`).join("")}
     <p class="hint" style="margin-top:14px">Form dosyaları (EK-1, EK-1A, EK-2) pilot sürümde bölüm sayfasından indirilir; canlı sürümde buradan inecek.</p>`);
 }
 
+/* ───────── Staj rehberi: bütün sürecin sakin anlatımı ───────── */
+// Normalde ihtiyaç yoktur — sistem her adımda yönlendirir. Baştan sona okumak
+// isteyen (veya hocasına anlatan) öğrenci için tek sayfa.
+const REHBER = [
+  ["Staj yeri bulma", "Bilgisayar/yazılım alanında sorumlu mühendisi olan bir kurum bulursun.", "Kurum aramak; emin değilsen kuruma sistemin verdiği hazır soruyu sormak."],
+  ["Belgeleri hazırlama", "Sistem staj türüne göre doğru kabul formunu verir; kuruma imzalatıp kaşeletirsin.", "Belgeyi indirip imzalatmak."],
+  ["Başvuru", "7 kısa adımda başvuru: bilgiler, tür, kurum, mühendis, tarihler, belge, kontrol. Her adım otomatik kaydedilir.", "Formu doldurmak — iş günü hesabını sistem yapar."],
+  ["Komisyon incelemesi", "Komisyon başvurunu ve belgeni inceler; genellikle 5 iş günü sürer.", "Hiçbir şey — sonucu bildirimle alırsın."],
+  ["Onay", "Başvurun onaylanır (veya düzeltme istenir; ne yapacağın açıkça yazar).", "Varsa düzeltmeyi yapmak."],
+  ["SGK kontrolü", "Sigortanı üniversite yapar; sen e-Devlet'ten görünüp görünmediğine bakarsın.", "Staj başlamadan 3 gün önce 2 dakikalık kontrol."],
+  ["OBS kaydı", "OBS'de staj dersini seçersin — not buraya işlenir.", "Ders kaydında stajı seçmek."],
+  ["Staj", "Staj süresince her iş günü için defter sayfası doldurur, imzalatır, vlog çekersin.", "Her gün 1 sayfa + imza. Son güne bırakmamak."],
+  ["Defter hazırlama", "Kapak + sayfalar + son sayfada vlog bağlantısı ve QR kod; hepsi tek PDF.", "Defteri birleştirmek; sistem kontrol listesiyle yardım eder."],
+  ["Teslim", "Defter sisteme yüklenir. Sicil fişi ise kapalı-kaşeli zarfla bölüme elden verilir.", "PDF yüklemek + zarfı sekreterliğe götürmek."],
+  ["Değerlendirme", "Komisyon defterini değerlendirir.", "Hiçbir şey — sonucu bildirimle alırsın."],
+  ["Tamamlandı", "Stajın kabul edilir, notun OBS'ye işlenir. 2. stajın için aynı süreç tekrar eder.", "🎉"],
+];
+function guideScreen() {
+  nav("guide");
+  el(`<h1>Staj süreci, baştan sona.</h1>
+    <p class="sub">Bunu ezberlemene gerek yok — sisteme her girdiğinde hangi adımdaysan onu gösteririz.
+    Bu sayfa, bütünü merak edenler için.</p>
+    ${REHBER.map(([ad, ne, gorev], i) => `
+      <div class="qa ${STAGE_NO[ME.stage] === i ? "open" : ""}" ${STAGE_NO[ME.stage] === i ? 'style="border-color:#1d4ed8"' : ""}>
+        <div class="q" onclick="this.parentNode.classList.toggle('open')">
+          ${i + 1}. ${ad} ${STAGE_NO[ME.stage] === i ? '<span style="color:#1d4ed8">· şu an buradasın</span>' : ""}</div>
+        <div class="a">${ne}<br><b>Senin görevin:</b> ${gorev}</div>
+      </div>`).join("")}
+    <div class="box info" style="margin-top:20px">Bölümde toplam <b>iki staj</b> yapılır (2 × 20 iş günü = 40 iş günü).
+    İkisi de aynı süreçten geçer.</div>`);
+}
+
 /* ───────── Yardım ───────── */
-async function helpScreen() {
+async function helpScreen(prefill) {
   nav("help");
   const faq = await api("/faq");
   const myQs = await api("/questions");
   const cats = [...new Set(faq.map(f => f.category))];
   el(`<h1>Yardım</h1>
-    <input id="fq" placeholder="Sorunu yaz, ör: kaç gün staj yapmam gerekiyor?" oninput="faqSearch()">
+    <input id="fq" placeholder="Sorunu yaz, ör: kaç gün staj yapmam gerekiyor?" value="${prefill || ""}" oninput="faqSearch()">
     <div id="fres"></div>
+    <div style="margin-top:10px">${cats.map(c =>
+      `<button class="link" style="font-size:13.5px;margin-right:12px" onclick="$('fq').value='${c}';faqSearch()">${c}</button>`).join("")}</div>
     <h1 style="font-size:18px;margin-top:24px">Çok sorulanlar</h1>
     ${faq.slice(0, 6).map(f => `<div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${f.q}</div><div class="a">${f.a}</div></div>`).join("")}
-    <p class="hint">Kategoriler: ${cats.join(" · ")}</p>
     <div class="box info">Cevabını bulamadın mı? <button class="link" onclick="askScreen()">Komisyona sor</button></div>
     ${myQs.length ? `<h1 style="font-size:18px;margin-top:24px">Sorularım</h1>` +
       myQs.map(q => `<div class="qa ${q.answer ? "open" : ""}"><div class="q">${q.answer ? "✅" : "⏳"} ${q.text}</div>
         <div class="a">${q.answer || "Henüz cevaplanmadı — cevap gelince bildirim alacaksın."}</div></div>`).join("") : ""}`);
+  if (prefill) faqSearch();
 }
 async function faqSearch() {
   const q = $("fq").value.trim();
@@ -562,7 +674,8 @@ async function sendQ() {
 }
 
 /* ───────── Yönlendirme ───────── */
-const routes = { home, wizard, sgk: sgkScreen, deliver: deliverScreen, docs: docsScreen, help: helpScreen, accept: acceptScreen };
+const routes = { home, wizard, sgk: sgkScreen, deliver: deliverScreen, docs: docsScreen,
+  help: helpScreen, accept: acceptScreen, guide: guideScreen };
 async function go(name) {
   try { await refresh(); } catch { return loginScreen(); }
   (routes[name] || home)();

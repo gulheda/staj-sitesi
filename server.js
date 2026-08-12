@@ -292,11 +292,22 @@ app.get("/api/admin/queue", auth("admin"), (req, res) => {
   const questions = db.prepare(`
     SELECT q.*, u.name, u.ogrenci_no FROM questions q JOIN users u ON u.id=q.user_id
     WHERE q.answer IS NULL ORDER BY q.id`).all();
+  // Başlangıcı 14 gün içinde olan onaylı stajlar: SGK/hazırlık takibi için.
+  const soon = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+  const upcoming = db.prepare(`
+    SELECT a.id, a.start_date, a.end_date, a.sgk_checked, a.obs_done, a.kurum_adi, u.name, u.ogrenci_no
+    FROM applications a JOIN users u ON u.id=a.user_id
+    WHERE a.status='approved' AND a.start_date BETWEEN ? AND ? ORDER BY a.start_date`).all(today(), soon);
+  // Öğrenciden düzeltme beklenenler: takip listesi (işlem öğrencide).
+  const waitingFix = db.prepare(`
+    SELECT a.id, a.status, a.fix_note, a.updated_at, u.name, u.ogrenci_no
+    FROM applications a JOIN users u ON u.id=a.user_id
+    WHERE a.status IN ('fix','fix_defter') ORDER BY a.updated_at`).all();
   const stats = {
-    fix: db.prepare("SELECT COUNT(*) c FROM applications WHERE status IN ('fix','fix_defter')").get().c,
+    fix: waitingFix.length,
     accepted: db.prepare("SELECT COUNT(*) c FROM applications WHERE status='accepted'").get().c,
   };
-  res.json({ apps, questions, stats });
+  res.json({ apps, questions, upcoming, waitingFix, stats });
 });
 
 app.post("/api/admin/app/:id/decision", auth("admin"), (req, res) => {

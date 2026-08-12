@@ -140,7 +140,20 @@ async function load() {
     <h2>Bekleyen işler (${d.apps.length})</h2>
     ${d.apps.length ? d.apps.map(appCard).join("") : `<div class="empty">Bekleyen iş yok 👍</div>`}
     <h2>Öğrenci soruları (${d.questions.length})</h2>
-    ${d.questions.length ? d.questions.map(qCard).join("") : `<div class="empty">Cevap bekleyen soru yok.</div>`}`;
+    ${d.questions.length ? d.questions.map(qCard).join("") : `<div class="empty">Cevap bekleyen soru yok.</div>`}
+    <h2>Başlangıcı yaklaşan stajlar — 14 gün (${d.upcoming.length})</h2>
+    ${d.upcoming.length ? d.upcoming.map(u => `<div class="card">
+      <span class="who">${u.name}</span> <span class="meta">· ${u.ogrenci_no} · ${u.kurum_adi || "—"}</span>
+      <div class="meta">Başlangıç: <b>${u.start_date}</b> ·
+        SGK kontrolü: ${u.sgk_checked ? "✅ öğrenci doğruladı" : "⏳ bekleniyor"} ·
+        OBS: ${u.obs_done ? "✅" : "⏳"}</div></div>`).join("")
+      : `<div class="empty">14 gün içinde başlayacak staj yok.</div>`}
+    <h2>Öğrenciden düzeltme beklenenler (${d.waitingFix.length})</h2>
+    ${d.waitingFix.length ? d.waitingFix.map(w => `<div class="card">
+      <span class="who">${w.name}</span> <span class="meta">· ${w.ogrenci_no} ·
+      ${w.status === "fix_defter" ? "defter düzeltmesi" : "belge düzeltmesi"} · istendi: ${(w.updated_at || "").slice(0, 10)}</span>
+      <div class="meta">“${w.fix_note || ""}”</div></div>`).join("")
+      : `<div class="empty">Düzeltme bekleyen öğrenci yok.</div>`}`;
   document.querySelectorAll("select[id^=t]").forEach(sel => {
     sel.onchange = () => { const id = sel.id.slice(1); if (sel.value !== "") $("n" + id).value = TEMPLATES[+sel.value]; };
   });
