@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAÜN Staj Portalı — Düşük Detaylı Prototip</title>
+<style>
+  /* ── Bilinçli olarak düşük detaylı (low-fi) wireframe stili ── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+         background: #e9e9e9; color: #333; line-height: 1.5; }
+  .frame { max-width: 760px; margin: 24px auto; background: #fff;
+           border: 2px solid #999; min-height: 560px; display: flex; flex-direction: column; }
+  header { display: flex; justify-content: space-between; align-items: center;
+           border-bottom: 2px solid #999; padding: 10px 16px; background: #f4f4f4; flex-wrap: wrap; gap: 8px; }
+  header .logo { font-weight: 700; }
+  nav a { margin-left: 10px; color: #333; text-decoration: none; border-bottom: 2px solid transparent;
+          cursor: pointer; font-size: 14px; }
+  nav a.active { border-bottom-color: #333; font-weight: 600; }
+  main { padding: 24px; flex: 1; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  h2 { font-size: 16px; margin: 18px 0 8px; }
+  .sub { color: #666; margin-bottom: 16px; }
+  .card { border: 1.5px solid #999; padding: 16px; margin: 16px 0; background: #fafafa; }
+  .card h3 { font-size: 12px; letter-spacing: 1px; color: #777; margin-bottom: 8px; text-transform: uppercase; }
+  .btn { display: inline-block; border: 1.5px solid #555; background: #fff; padding: 9px 18px;
+         font-size: 15px; cursor: pointer; margin: 6px 8px 6px 0; font-family: inherit; }
+  .btn.primary { background: #444; color: #fff; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.small { padding: 4px 10px; font-size: 13px; }
+  .link { color: #2a5aa0; cursor: pointer; text-decoration: underline; background: none; border: none;
+          font-size: inherit; font-family: inherit; padding: 0; }
+  .after { font-size: 13px; color: #666; margin-top: 6px; }
+  .muted { color: #888; font-size: 13px; }
+  input[type=text], input[type=password], input[type=date], select, textarea {
+    width: 100%; max-width: 340px; padding: 8px; border: 1.5px solid #999; font-size: 15px;
+    font-family: inherit; margin: 4px 0 2px; background: #fff; }
+  label { display: block; margin-top: 12px; font-weight: 600; font-size: 14px; }
+  .hint { font-size: 12.5px; color: #777; max-width: 420px; }
+  .radio { display: block; border: 1.5px solid #aaa; padding: 12px; margin: 8px 0; cursor: pointer;
+           max-width: 420px; background: #fff; }
+  .radio:hover { background: #f0f0f0; }
+  .radio input { margin-right: 8px; }
+  /* süreç göstergesi */
+  .steps { display: flex; flex-wrap: wrap; gap: 2px; margin: 14px 0; }
+  .step { flex: 1; min-width: 52px; text-align: center; font-size: 10.5px; color: #999; padding-top: 2px; }
+  .step .dot { width: 20px; height: 20px; border-radius: 50%; margin: 0 auto 3px; line-height: 20px;
+               border: 2px solid #bbb; background: #eee; color: #999; font-size: 11px; }
+  .step.done .dot { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+  .step.done { color: #2e7d32; }
+  .step.now .dot { background: #f9a825; border-color: #f9a825; color: #fff; }
+  .step.now { color: #b28704; font-weight: 700; }
+  .warn { border: 1.5px solid #b28704; background: #fdf6e3; padding: 12px; margin: 12px 0; max-width: 460px; }
+  .ok   { border: 1.5px solid #2e7d32; background: #eef7ee; padding: 12px; margin: 12px 0; max-width: 460px; }
+  .info { border: 1.5px dashed #888; background: #f4f4f4; padding: 12px; margin: 12px 0; max-width: 520px; }
+  .upload { border: 2px dashed #999; padding: 22px; text-align: center; color: #777; margin: 10px 0;
+            max-width: 460px; cursor: pointer; background: #fff; }
+  .checklist label { font-weight: 400; margin-top: 6px; cursor: pointer; }
+  table.doc { border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+  table.doc td { border: 1px solid #bbb; padding: 6px 10px; }
+  table.doc td:first-child { font-weight: 600; background: #f4f4f4; white-space: nowrap; }
+  .wizhead { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1.5px solid #ccc;
+             padding-bottom: 8px; margin-bottom: 16px; }
+  .faqcat { display: inline-block; border: 1.5px solid #999; padding: 6px 12px; margin: 4px 4px 0 0;
+            cursor: pointer; font-size: 13.5px; background: #fff; }
+  .qa { border: 1px solid #ccc; padding: 10px 14px; margin: 8px 0; max-width: 560px; background: #fff; }
+  .qa .q { font-weight: 600; cursor: pointer; }
+  .qa .a { display: none; margin-top: 6px; color: #555; font-size: 14px; }
+  .qa.open .a { display: block; }
+  footer { border-top: 1.5px solid #ccc; padding: 8px 16px; font-size: 12.5px; color: #888;
+           display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+  .scenario { font-size: 12px; }
+  .scenario select { max-width: 220px; font-size: 12px; padding: 3px; }
+  .notice { background: #333; color: #eee; font-size: 12px; padding: 6px 16px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="notice">DÜŞÜK DETAYLI PROTOTİP — amaç görsel tasarım değil, akış ve metinlerin testi.
+Sağ alttaki “Senaryo” menüsüyle sürecin farklı anlarına atlayabilirsiniz.</div>
+
+<div class="frame">
+  <header id="topbar" style="display:none">
+    <span class="logo">BAÜN Staj Portalı</span>
+    <nav>
+      <a data-nav="home"    onclick="go('home')">Stajım</a>
+      <a data-nav="docs"    onclick="go('docs')">Belgelerim</a>
+      <a data-nav="help"    onclick="go('help')">Yardım</a>
+      <a data-nav="guide"   onclick="go('guide')">Staj rehberi</a>
+    </nav>
+    <span class="muted">Deniz Y. ▾</span>
+  </header>
+  <main id="app"></main>
+  <footer>
+    <span id="foot-help"></span>
+    <span class="scenario">Senaryo:
+      <select id="scenario" onchange="setScenario(this.value)">
+        <option value="">— seç —</option>
+        <option value="fresh">İlk kez giren öğrenci</option>
+        <option value="noplace">Staj yeri henüz yok</option>
+        <option value="draft">Başvurusu yarım kalmış</option>
+        <option value="review">Başvurusu incelemede</option>
+        <option value="fix">Düzeltme istenmiş</option>
+        <option value="approved">Onaylanmış (SGK aşaması)</option>
+        <option value="during">Stajı devam ediyor</option>
+        <option value="deliver">Defter teslim aşamasında</option>
+        <option value="evaluating">Defteri değerlendirmede</option>
+        <option value="accepted">Stajı kabul edilmiş</option>
+      </select>
+    </span>
+  </footer>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Durum modeli: öğrencinin süreçteki konumu tek değişkendir.
+   Ana ekran ("Stajım") tamamen bu duruma göre çizilir.
+   ───────────────────────────────────────────────────────────── */
+const STAGES = ["Staj yeri","Belgeler","Başvuru","İnceleme","Onay","SGK","OBS",
+                "Staj","Defter","Teslim","Değerlendirme","Bitti"];
+
+let student = { stage: "fresh", wizardStep: 1, dates: null, checklist: 0, sicil: false };
+
+function setScenario(s){ if(!s) return; student.stage = s; student.wizardStep = (s==="draft") ? 4 : 1;
+  student.checklist = 0; student.sicil = false; go("home"); }
+
+function nav(active){
+  document.getElementById("topbar").style.display = "flex";
+  document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("active", a.dataset.nav===active));
+}
+
+function stepsBar(now){
+  return '<div class="steps">' + STAGES.map((s,i)=>{
+    const cls = i<now ? "done" : (i===now ? "now" : "");
+    const mark = i<now ? "✓" : (i===now ? "●" : "○");
+    return `<div class="step ${cls}"><div class="dot">${mark}</div>${s}</div>`;
+  }).join('') + '</div>';
+}
+
+function takildin(topic){
+  document.getElementById("foot-help").innerHTML =
+    `Takıldın mı? <button class="link" onclick="go('help','${topic||''}')">Bu aşamayla ilgili sık sorulan sorular</button>`;
+}
+
+function render(html, activeNav, helpTopic){
+  document.getElementById("app").innerHTML = html;
+  if(activeNav) nav(activeNav);
+  takildin(helpTopic);
+  window.scrollTo(0,0);
+}
+
+/* ── Ekranlar ── */
+const screens = {
+
+login(){
+  document.getElementById("topbar").style.display = "none";
+  document.getElementById("foot-help").innerHTML = "";
+  document.getElementById("app").innerHTML = `
+    <div style="max-width:400px;margin:40px auto">
+      <h1>BAÜN Staj Portalı</h1>
+      <p class="sub">Bilgisayar Mühendisliği staj işlemlerinin tamamı burada.</p>
+      <label>Öğrenci numaran</label>
+      <input type="text" placeholder="20251001234">
+      <label>Şifren</label>
+      <input type="password" placeholder="••••••••">
+      <div class="hint">İlk kez mi giriyorsun? Öğrenci numaran ve TC kimlik numaranla başla —
+      sana kurumsal e-postanla kendi şifreni oluşturtacağız.</div>
+      <br><button class="btn primary" onclick="go('onboard')">Giriş yap</button>
+      <div><button class="link" style="font-size:13px">Şifreni mi unuttun?</button></div>
+    </div>`;
+},
+
+onboard(){
+  render(`
+    <h1>Staj sürecine başlayalım.</h1>
+    <p class="sub">Sana doğru adımları gösterebilmemiz için tek bir soru:</p>
+    <h2>Şu anda hangi durumdasın?</h2>
+    <label class="radio"><input type="radio" name="st" onclick="pick('noplace')"> İlk kez staj başvurusu yapacağım</label>
+    <label class="radio"><input type="radio" name="st" onclick="pick('review')"> Daha önce başvuru yaptım</label>
+    <label class="radio"><input type="radio" name="st" onclick="pick('during')"> Stajım başladı</label>
+    <label class="radio"><input type="radio" name="st" onclick="pick('deliver')"> Stajımı tamamladım</label>
+    <p class="hint">Emin değilsen: daha önce hiç başvuru yapmadıysan ilk seçeneği işaretle.</p>
+    <br><button class="btn primary" id="cont" disabled onclick="go('home')">Devam et</button>
+  `, "home");
+},
+
+home(){
+  const s = student.stage;
+  let h = "";
+  if(s==="fresh"){ screens.onboard(); return; }
+
+  if(s==="noplace"){ h = `
+    <h1>Önce staj yapacağın bir kurum bulmalısın.</h1>
+    <p class="sub">Başvuru formu, kurumunu bulduktan sonra açılacak — böylece hiçbir bilgiyi boş bırakmak zorunda kalmazsın.</p>
+    ${stepsBar(0)}
+    <div class="card"><h3>Şimdi yapman gereken</h3>
+      <p><b>Staj yapabileceğin bir kurum bul.</b></p>
+      <p style="margin-top:8px">Kurum şu şartı taşımalı:</p>
+      <p>• Bünyesinde <b>bilgisayar, yazılım veya ilgili alanda çalışan sorumlu bir mühendis</b> bulunmalı.</p>
+      <div class="info">Emin değilsen kuruma şunu sorabilirsin:<br>
+      <i>“Staj süresince benden sorumlu olacak mühendisin unvanı nedir?”</i></div>
+      <button class="btn primary" onclick="go('accept')">Kurum buldum, devam et</button>
+      <p class="after">Devam ettiğinde kurumun imzalaması gereken kabul belgesini birlikte hazırlayacağız.</p>
+    </div>`;
+  }
+
+  if(s==="draft"){ h = `
+    <h1>Başvurun henüz gönderilmedi.</h1>
+    <p class="sub">Bilgilerin kaydedildi — kaldığın yerden devam edebilirsin.</p>
+    ${stepsBar(2)}
+    <div class="card"><h3>Şimdi yapman gereken</h3>
+      <p><b>Başvuruna kaldığın yerden devam et (Adım ${student.wizardStep}/7).</b></p>
+      <button class="btn primary" onclick="go('wizard')">Devam et</button>
+      <p class="after">Bütün adımları bitirip “Başvuruyu gönder” dediğinde başvurun komisyona iletilecek.</p>
+    </div>`;
+  }
+
+  if(s==="review"){ h = `
+    <h1>Başvurun inceleniyor.</h1>
+    <p class="sub">Şu anda senden bir işlem beklenmiyor. Sonuçlanınca e-posta ile haber vereceğiz.</p>
+    ${stepsBar(3)}
+    <div class="info">Başvurular genellikle 5 iş günü içinde incelenir.<br>
+    Bu arada istersen <button class="link" onclick="go('docs')">staj defteri şablonunu şimdiden indirebilirsin</button>.</div>
+    <h2>Yaklaşan tarihler</h2>
+    <p class="muted">• 6 Temmuz — planladığın staj başlangıcı</p>`;
+  }
+
+  if(s==="fix"){ h = `
+    <h1>Başvurunda düzeltmen gereken bir belge var.</h1>
+    ${stepsBar(3)}
+    <div class="card"><h3>Komisyonun açıklaması</h3>
+      <p><b>Yüklediğin kabul belgesinde işletme kaşesi görünmüyor.</b><br>
+      Belgeyi işletmeye kaşelettikten sonra yeniden yükle.</p>
+      <div class="upload" onclick="uploaded(this)">Belgeyi buraya sürükle veya <u>dosya seç</u><br>
+      <span class="muted">PDF veya fotoğraf (JPG) · en fazla 10 MB</span></div>
+      <button class="btn primary" onclick="fixDone()">Belgeyi yeniden yükle</button>
+      <p class="after">Yeni belgen doğrudan komisyona iletilecek.</p>
+    </div>
+    <p class="muted">Diğer belgelerin: Kabul belgesi dışındaki tüm belgelerin ✓ onaylandı — onlara dokunmana gerek yok.</p>`;
+  }
+
+  if(s==="approved"){ h = `
+    <h1>Başvurun onaylandı ✓</h1>
+    <p class="sub">Staj başlangıcına 8 gün kaldı.</p>
+    ${stepsBar(5)}
+    <div class="card"><h3>Şimdi yapman gereken</h3>
+      <p><b>Staj başlangıcından 3 gün önce e-Devlet üzerinden SGK (sigorta) girişini kontrol et.</b></p>
+      <p class="hint">Sigortanı üniversite yapar; senin görevin sadece yapılmış mı diye bakmak.</p>
+      <button class="btn primary" onclick="go('sgk')">Nasıl kontrol edeceğimi göster</button>
+      <p class="after">Kontrolü yapınca sıradaki adımın: OBS'de staj dersini seçmek.</p>
+    </div>
+    <h2>Yaklaşan tarihler</h2>
+    <p class="muted">• 3 Temmuz — SGK kontrolü için son gün<br>• 6 Temmuz — staj başlangıcın</p>`;
+  }
+
+  if(s==="during"){ h = `
+    <h1>Stajın devam ediyor — 7. gün / 20 gün</h1>
+    ${stepsBar(7)}
+    <div class="card"><h3>Staj süresince yapman gerekenler</h3>
+      <p>• <b>Her staj günü için defter sayfanı doldur.</b> Son güne bırakma —
+      her günün işini o gün yaz.</p>
+      <p>• Sayfaları hafta sonunu beklemeden işyeri sorumluna imzalat.</p>
+      <p>• Vlog çekimlerini unutma.</p>
+      <button class="btn primary" onclick="go('docs')">Günlük defter sayfasını indir</button>
+      <button class="btn" onclick="go('docs')">Vlog rehberini aç</button>
+    </div>
+    <h2>Yaklaşan tarihler</h2>
+    <p class="muted">• 31 Temmuz — staj bitişin<br>• 15 Ekim — defter teslimi için son tarih</p>`;
+  }
+
+  if(s==="deliver"){ h = `
+    <h1>Stajını tamamladın.</h1>
+    <p class="sub">Şimdi staj belgelerini teslim etmelisin. Son tarih: <b>15 Ekim</b>.</p>
+    ${stepsBar(9)}
+    <div class="card"><h3>Şimdi yapman gereken — 2 adım</h3>
+      <p><b>1) Staj defterini PDF olarak buraya yükle.</b></p>
+      <button class="btn primary" onclick="go('deliverCheck')">Teslim adımlarına başla</button>
+      <p style="margin-top:14px"><b>2) Staj sicil fişini elden teslim et.</b></p>
+      <div class="warn">Staj sicil fişi bu sisteme <b>yüklenmez</b>. İşyerinin doldurduğu fişi
+      <b>kapalı ve kaşeli zarf</b> içinde <b>bölüm sekreterliğine elden</b> teslim etmelisin.</div>
+    </div>`;
+  }
+
+  if(s==="evaluating"){ h = `
+    <h1>Defterin değerlendiriliyor.</h1>
+    <p class="sub">Şu anda senden bir işlem beklenmiyor. Sonuç açıklanınca e-posta ile haber vereceğiz.</p>
+    ${stepsBar(10)}
+    ${student.sicil ? '<div class="ok">✓ Sicil fişin bölüme ulaştı. Bütün belgelerin tamam.</div>'
+                    : '<div class="warn">Sicil fişini henüz teslim etmediysen unutma: kapalı ve kaşeli zarfla bölüm sekreterliğine.</div>'}`;
+  }
+
+  if(s==="accepted"){ h = `
+    <h1>Tebrikler — stajın kabul edildi 🎉</h1>
+    <p class="sub">Staj sürecin tamamlandı. Yapman gereken başka bir işlem yok.</p>
+    ${stepsBar(12)}
+    <div class="info">Staj notun OBS'ye işlendiğinde orada görebilirsin.</div>`;
+  }
+
+  render(h, "home");
+},
+
+/* Kabul belgesi ekranı */
+accept(){
+  render(`
+    <h1>Kurumun imzalaması gereken kabul belgesi</h1>
+    <p class="sub">Stajını <b>yaz tatilinde</b> yapacağını söyledin; bu yüzden sana doğru formu biz seçtik.</p>
+    <div class="card">
+      <p><b>İşletmenin imzalaması gereken staj kabul belgesi</b><br>
+      <span class="muted">Zorunlu Staj Kabul Formu — EK-1</span></p>
+      <table class="doc">
+        <tr><td>Bu belge nedir?</td><td>İşletmenin seni stajyer olarak kabul ettiğini gösteren belge.</td></tr>
+        <tr><td>Kim dolduracak?</td><td>Üst kısmı sen, işletme bilgilerini kurum.</td></tr>
+        <tr><td>Kim imzalayacak?</td><td>İşletme yetkilisi.</td></tr>
+        <tr><td>Kaşe gerekiyor mu?</td><td><b>Evet</b> — işletme kaşesi zorunlu.</td></tr>
+        <tr><td>Ne zaman?</td><td>Başvurudan önce (başvuruda yükleyeceksin).</td></tr>
+      </table>
+      <button class="btn">Belgeyi indir</button>
+      <button class="btn">Nasıl doldurulur?</button>
+      <button class="btn">Örnek doldurulmuş belge</button>
+    </div>
+    <button class="btn primary" onclick="student.stage='draft';student.wizardStep=1;go('wizard')">Belgeyi imzalattım, başvuruya geç</button>
+    <p class="after">Başvuru 7 kısa adımdan oluşuyor; her adım otomatik kaydedilir, yarıda bırakabilirsin.</p>
+  `, "home", "belgeler");
+},
+
+/* 7 adımlı sihirbaz */
+wizard(){
+  const n = student.wizardStep;
+  const names = ["Bilgilerin","Staj türün","Kurum","Sorumlu mühendis","Tarihler","Belgeler","Kontrol"];
+  const head = `<div class="wizhead"><h1 style="font-size:18px">Staj Başvurusu</h1><b>Adım ${n}/7 — ${names[n-1]}</b></div>
+    <div class="steps">${names.map((s,i)=>`<div class="step ${i+1<n?'done':(i+1===n?'now':'')}">
+      <div class="dot">${i+1<n?'✓':(i+1===n?'●':'○')}</div>${s}</div>`).join('')}</div>`;
+  const back = n>1 ? `<button class="btn" onclick="student.wizardStep--;go('wizard')">← Geri</button>` : "";
+  const next = (label)=>`<button class="btn primary" onclick="student.wizardStep++;go('wizard')">${label||'Devam et'}</button>`;
+  let body = "";
+
+  if(n===1) body = `
+    <p class="sub">Bu bilgiler öğrenci kayıtlarından geldi — yazmana gerek yok.</p>
+    <table class="doc">
+      <tr><td>Ad Soyad</td><td>Deniz Yılmaz</td></tr>
+      <tr><td>Öğrenci No</td><td>20251001234</td></tr>
+      <tr><td>Sınıf</td><td>3. sınıf — Bilgisayar Mühendisliği</td></tr>
+    </table>
+    <label>Telefon numaran</label><input type="text" placeholder="05xx xxx xx xx">
+    <div class="hint">Komisyonun sana ulaşması gerekirse kullanılır.</div><br>${back}${next()}`;
+
+  if(n===2) body = `
+    <h2>Stajını ne zaman yapacaksın?</h2>
+    <label class="radio"><input type="radio" name="t" checked> Yaz tatilinde</label>
+    <label class="radio"><input type="radio" name="t"> Dönem içinde</label>
+    <div class="hint">Cevabına göre doğru kabul formunu ve kuralları biz ayarlayacağız.</div><br>${back}${next()}`;
+
+  if(n===3) body = `
+    <label>Kurumun adı</label><input type="text" placeholder="Örnek Yazılım A.Ş.">
+    <label>Adresi</label><input type="text">
+    <label>Faaliyet alanı</label><input type="text" placeholder="Yazılım geliştirme">
+    <div class="hint">Kurumda bilgisayar, yazılım veya ilgili alandan sorumlu bir mühendis çalışıyor olmalı.
+    Emin değilsen sonraki adımda “Bilmiyorum” diyebilirsin.</div><br>${back}${next()}`;
+
+  if(n===4) body = `
+    <label>Sorumlu mühendisin adı soyadı</label><input type="text">
+    <label>Unvanı</label>
+    <select onchange="document.getElementById('dk').style.display = this.value==='?' ? 'block':'none'">
+      <option>Bilgisayar Mühendisi</option><option>Yazılım Mühendisi</option>
+      <option>İlgili alanda mühendis</option><option value="?">Bilmiyorum</option>
+    </select>
+    <div id="dk" style="display:none" class="info">Sorun değil. Kuruma şu soruyu sorabilirsin:<br>
+      <i>“Staj süresince benden sorumlu olacak mühendisin adı ve unvanı nedir?”</i><br>
+      Cevabı alınca dönüp devam edebilirsin — başvurun taslak olarak saklanacak.</div>
+    <br>${back}${next()}`;
+
+  if(n===5){
+    const fixed = student.dates === "ok";
+    body = `
+    <h2>Staj tarihlerini seç</h2>
+    <p class="hint">İş günü hesabını biz yaparız; sen sadece tarihleri seç. Hafta sonları ve resmî
+    tatiller sayılmaz, staj bu günlerde başlayamaz.</p>
+    <label>Başlangıç</label><input type="date" value="2026-07-06" disabled>
+    <label>Bitiş</label><input type="date" value="${fixed?'2026-08-03':'2026-07-31'}" disabled>
+    ${fixed
+      ? `<div class="ok">✓ Bu tarihler toplam <b>20 iş günü</b> oluşturuyor. Kurala uygun.</div>`
+      : `<div class="warn">⚠ Bu tarihler toplam <b>19 iş günü</b> oluşturuyor. Stajın en az <b>20 iş günü</b> olmalı.<br><br>
+         <b>Önerilen bitiş tarihi: 3 Ağustos 2026</b><br>
+         <button class="btn small" onclick="student.dates='ok';go('wizard')">Önerilen tarihi kullan</button></div>`}
+    <label style="margin-top:14px">İşletme staj ücreti ödeyecek mi?</label>
+    <select><option>Hayır</option><option>Evet</option><option>Bilmiyorum</option></select>
+    <div class="hint">“Evet” dersen devlet katkısı için gereken belgeyi bir sonraki adımda listene ekleyeceğiz.</div>
+    <br>${back}${fixed ? next() : '<button class="btn primary" disabled title="Önce tarih sorununu çözmelisin">Devam et</button>'}`;
+  }
+
+  if(n===6) body = `
+    <p class="sub">Bu başvuru için gereken belgeler yalnızca şunlar:</p>
+    <div class="card">
+      <p><b>İşletmenin imzaladığı staj kabul belgesini yükle</b><br>
+      <span class="muted">Zorunlu Staj Kabul Formu — EK-1</span></p>
+      <p class="hint">Yüklemeden önce kontrol et: belge <b>imzalı VE kaşeli</b> olmalı.
+      <button class="link">Örnek doldurulmuş belgeyi gör</button></p>
+      <div class="upload" onclick="uploaded(this)">Belgeyi buraya sürükle veya <u>dosya seç</u><br>
+      <span class="muted">PDF veya fotoğraf (JPG) · en fazla 10 MB</span></div>
+    </div>
+    ${back}${next()}`;
+
+  if(n===7) body = `
+    <h2>Bilgilerini kontrol et</h2>
+    <table class="doc">
+      <tr><td>Staj türü</td><td>Yaz stajı <button class="link small" onclick="student.wizardStep=2;go('wizard')">Düzenle</button></td></tr>
+      <tr><td>Kurum</td><td>Örnek Yazılım A.Ş. <button class="link" onclick="student.wizardStep=3;go('wizard')">Düzenle</button></td></tr>
+      <tr><td>Sorumlu mühendis</td><td>A. Kaya — Bilgisayar Müh. <button class="link" onclick="student.wizardStep=4;go('wizard')">Düzenle</button></td></tr>
+      <tr><td>Tarihler</td><td>6 Tem – 3 Ağu 2026 (20 iş günü ✓) <button class="link" onclick="student.wizardStep=5;go('wizard')">Düzenle</button></td></tr>
+      <tr><td>Belgeler</td><td>Kabul belgesi ✓ yüklendi <button class="link" onclick="student.wizardStep=6;go('wizard')">Düzenle</button></td></tr>
+    </table>
+    <div class="info">Başvuruyu gönderdiğinde bilgiler staj komisyonunun incelemesine aktarılacak.
+    İnceleme başlamadan önce bazı bilgileri güncelleyebilirsin.</div>
+    ${back}<button class="btn primary" onclick="student.stage='review';go('submitted')">Başvuruyu gönder</button>`;
+
+  render(head + body, "home", "basvuru");
+},
+
+submitted(){
+  render(`
+    <h1>Başvurunu aldık ✓</h1>
+    <p class="sub">Başvuru özetin e-posta adresine de gönderildi.</p>
+    <div class="card"><h3>Sonra ne olacak?</h3>
+      <p>1. Staj komisyonu başvurunu inceleyecek (genellikle 5 iş günü içinde).</p>
+      <p>2. Sonuç, sistemde ve e-postanda görünecek.</p>
+      <p>3. <b>Şu anda senden bir işlem beklenmiyor.</b></p>
+    </div>
+    <button class="btn primary" onclick="go('home')">Stajıma dön</button>
+  `, "home");
+},
+
+sgk(){
+  render(`
+    <h1>SGK girişini kontrol et</h1>
+    <p class="sub">Sigortanı üniversite yaptı; sen sadece görünüp görünmediğine bakacaksın. 2 dakika sürer.</p>
+    <div class="card">
+      <p><b>1.</b> e-Devlet'e gir: <u>turkiye.gov.tr</u></p>
+      <p><b>2.</b> Arama kutusuna “<b>SGK Tescil ve Hizmet Dökümü</b>” yaz.</p>
+      <p><b>3.</b> Dökümde staj başlangıç tarihinle bir işe giriş kaydı görmelisin.</p>
+      <div class="info">[ e-Devlet ekran görüntüsü — hangi satıra bakılacağı işaretli ]</div>
+    </div>
+    <button class="btn primary" onclick="student.stage='during';go('home')">SGK girişimi gördüm ✓</button>
+    <button class="btn" onclick="go('sgkFail')">SGK girişimi göremiyorum</button>
+    <p class="after">“Gördüm” dediğinde sıradaki adımın: OBS'de staj dersini seçmek.</p>
+  `, "home", "sgk");
+},
+
+sgkFail(){
+  render(`
+    <h1>Sorun değil — bölüme bildirdik.</h1>
+    <div class="ok">Durumu staj komisyonuna ilettik; seninle iletişime geçilecek.<br><br>
+    <b>Önemli:</b> SGK girişin görünmeden staja başlama.</div>
+    <button class="btn primary" onclick="go('home')">Stajıma dön</button>
+  `, "home", "sgk");
+},
+
+deliverCheck(){
+  const items = ["Her staj günü için ayrı sayfa hazırladım (20 gün = 20 sayfa)",
+    "Bütün sayfaları işyeri sorumlusu imzaladı","Gerekli kaşeler sayfalarda var",
+    "Kapak sayfasını ekledim","Vlog bağlantısı ve QR kodu son sayfada",
+    "PDF net okunuyor (bulanık/karanlık sayfa yok)","Dosya boyutu 25 MB'ın altında"];
+  render(`
+    <h1>Staj defterini teslim et</h1>
+    <p class="sub">Önce kısa bir kontrol: eksik defterler komisyondan geri döner, bu liste seni ondan kurtarır.</p>
+    <div class="card checklist"><h3>Yüklemeden önce kontrol et</h3>
+      ${items.map((t,i)=>`<label><input type="checkbox" onchange="chk()"> ${t}</label>`).join('')}
+    </div>
+    <div class="upload" onclick="uploaded(this)">Defterini (PDF) buraya sürükle veya <u>dosya seç</u></div>
+    <button class="btn primary" id="upBtn" disabled onclick="student.stage='evaluating';go('delivered')">Defteri yükle</button>
+    <p class="after" id="upWhy">Listeyi tamamlayınca yükleme açılır.</p>
+    <div class="warn"><b>Staj sicil fişi bu sisteme yüklenmez.</b> Kapalı ve kaşeli zarf içinde bölüm
+    sekreterliğine elden teslim et; ettikten sonra işaretle:<br><br>
+    <label style="font-weight:400"><input type="checkbox" onchange="student.sicil=this.checked"> Sicil fişi zarfını sekreterliğe teslim ettim</label></div>
+  `, "home", "defter");
+},
+
+delivered(){
+  render(`
+    <h1>Defterini aldık ✓</h1>
+    <div class="ok">Defterin komisyon değerlendirmesine gönderildi.</div>
+    ${student.sicil
+      ? '<p>Sicil fişini teslim ettiğini işaretledin — komisyon zarf ulaştığında sistemden onaylayacak.</p>'
+      : '<div class="warn">Unutma: sicil fişini <b>kapalı ve kaşeli zarfla bölüm sekreterliğine elden</b> teslim etmen gerekiyor.</div>'}
+    <button class="btn primary" onclick="go('home')">Stajıma dön</button>
+  `, "home");
+},
+
+docs(){
+  render(`
+    <h1>Belgelerim</h1>
+    <p class="sub">Belgeler bulunduğun aşamaya göre sıralandı — şu an ihtiyacın olanlar en üstte.</p>
+    <h2>Staj sırasında kullanacakların</h2>
+    <div class="qa open"><div class="q">Günlük staj defteri sayfası ▾</div>
+      <div class="a">
+      <table class="doc">
+        <tr><td>Nedir?</td><td>Her staj günü için doldurduğun, o gün ne yaptığını anlatan sayfa.</td></tr>
+        <tr><td>Kim doldurur?</td><td>Sen — her staj günü için bir sayfa.</td></tr>
+        <tr><td>Kim imzalar?</td><td>İşyerindeki sorumlu mühendisin.</td></tr>
+        <tr><td>Kaşe?</td><td>Evet, sayfalarda işyeri kaşesi gerekir.</td></tr>
+        <tr><td>Ne zaman?</td><td>Staj süresince her gün. Son güne bırakma.</td></tr>
+        <tr><td>Nereye?</td><td>Staj bitince hepsini tek PDF yapıp bu sisteme yükleyeceksin.</td></tr>
+      </table>
+      <button class="btn small">Şablonu indir</button>
+      <button class="btn small">Örnek doldurulmuş sayfa</button></div></div>
+    <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">Staj defteri kapağı ▸</div><div class="a">Şablonu indirip ad-soyad, kurum ve tarih bilgilerini doldur.</div></div>
+    <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">Vlog hazırlama rehberi ▸</div><div class="a">Staj boyunca çekeceğin kısa videolar için kurallar; bağlantı ve QR kod defterin son sayfasına eklenecek.</div></div>
+    <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">Staj sicil fişi ▸</div><div class="a">İşyerinin senin hakkında doldurduğu değerlendirme. <b>Sisteme yüklenmez</b> — kapalı ve kaşeli zarfla bölüm sekreterliğine elden teslim edilir.</div></div>
+    <h2>Başvuruda kullandıkların</h2>
+    <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">İşletme kabul belgesi (EK-1) — ✓ onaylandı ▸</div><div class="a">Başvurunda yüklendi ve komisyon tarafından onaylandı.</div></div>
+  `, "docs", "belgeler");
+},
+
+help(){
+  render(`
+    <h1>Yardım</h1>
+    <input type="text" style="max-width:520px" placeholder="Sorunu kendi cümlenle yaz, ör: kaç gün staj yapmam gerekiyor?"
+      oninput="document.getElementById('res').style.display = this.value.length>3 ? 'block':'none'">
+    <div id="res" style="display:none">
+      <div class="qa open"><div class="q">Staj en az kaç iş günü olmalı?</div>
+      <div class="a">Zorunlu staj en az <b>20 iş günü</b>dür. Hafta sonları ve resmî tatiller sayılmaz —
+      başvuruda tarihleri seçtiğinde sistem senin için hesaplar.<br><br>
+      Bu cevap işine yaradı mı? <button class="link">👍</button> <button class="link">👎</button></div></div>
+    </div>
+    <h2>Kategoriler</h2>
+    <div>${["Staj yeri bulma","Staj tarihleri","Yaz stajı","Dönem içi staj","Belgeler","SGK işlemleri",
+            "OBS işlemleri","Staj defteri","Staj sicil fişi","Vlog","Yurt dışı stajı","Mezun durumu"]
+        .map(c=>`<span class="faqcat">${c}</span>`).join('')}</div>
+    <h2>Sık sorulanlar — Staj defteri</h2>
+    <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">Staj defterini ne zaman teslim edeceğim? ▸</div>
+      <div class="a">Staj bittikten sonra, en geç <b>15 Ekim</b>'e kadar bu sistemden PDF olarak yükleyeceksin.
+      Stajın bittiğinde ana sayfan seni zaten teslim adımına yönlendirecek.</div></div>
+    <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">Sicil fişini de sisteme mi yükleyeceğim? ▸</div>
+      <div class="a">Hayır. Sicil fişi <b>kapalı ve kaşeli zarfla bölüm sekreterliğine elden</b> teslim edilir.</div></div>
+    <br><div class="info">Cevabını bulamadın mı? <button class="link" onclick="go('ask')">Komisyona yeni soru gönder</button></div>
+  `, "help");
+},
+
+ask(){
+  render(`
+    <h1>Soru sor</h1>
+    <p class="sub">Önce sorunu yaz — benzer sorular daha önce cevaplanmış olabilir.</p>
+    <textarea rows="3" style="max-width:520px" placeholder="Sorunu buraya yaz…"
+      oninput="document.getElementById('sim').style.display = this.value.length>8 ? 'block':'none';
+               document.getElementById('send').disabled = this.value.length<=8"></textarea>
+    <div id="sim" style="display:none">
+      <div class="info"><b>Göndermek istediğin soruya benzeyen cevaplar bulduk:</b><br>
+      • Staj defteri ne zaman teslim edilir? — <button class="link" onclick="go('help')">cevabı gör</button><br>
+      • Defter tesliminde sicil fişi de yüklenecek mi? — <button class="link" onclick="go('help')">cevabı gör</button></div>
+    </div>
+    <button class="btn primary" id="send" disabled onclick="go('askDone')">Hiçbiri sorumu cevaplamıyor, soruyu gönder</button>
+  `, "help");
+},
+
+askDone(){
+  render(`
+    <h1>Sorunu komisyona ilettik ✓</h1>
+    <div class="ok">Cevaplanınca sana bildirim ve e-posta ile haber vereceğiz.
+    Sorularını ve cevaplarını “Yardım → Sorularım” bölümünde her zaman görebilirsin.</div>
+    <button class="btn primary" onclick="go('home')">Stajıma dön</button>
+  `, "help");
+},
+
+guide(){
+  render(`
+    <h1>Staj rehberi</h1>
+    <p class="sub">Bütün staj sürecini baştan sona okumak istersen buradasın. (Normalde ihtiyacın olmaz —
+    sistem her adımda seni zaten yönlendirir.)</p>
+    <div class="info">[ Hocanın hazırladığı adım adım süreç anlatımı ve görseller buraya taşınacak:
+    staj yeri bulma → belgeler → başvuru → SGK → OBS → staj → defter → teslim → değerlendirme ]</div>
+    ${stepsBar(-1)}
+  `, "guide");
+}
+};
+
+/* ── Yardımcılar ── */
+function go(name, topic){ (screens[name]||screens.home)(); }
+function pick(stage){ student.stage = stage; document.getElementById("cont").disabled = false; }
+function uploaded(el){ el.innerHTML = "✓ Belgeni aldık. <span class='muted'>staj_belgesi.pdf</span> <u>Değiştir</u>"; el.style.borderStyle="solid"; el.style.color="#2e7d32"; }
+function fixDone(){ student.stage="review"; render(`
+  <h1>Yeni belgen komisyona iletildi ✓</h1>
+  <div class="ok">✓ Belgeni aldık. Komisyon yeniden inceleyecek; sonuçlanınca haber vereceğiz.
+  Şu anda senden bir işlem beklenmiyor.</div>
+  <button class="btn primary" onclick="go('home')">Stajıma dön</button>`, "home"); }
+function chk(){
+  const boxes = document.querySelectorAll(".checklist input");
+  const all = [...boxes].every(b=>b.checked);
+  document.getElementById("upBtn").disabled = !all;
+  document.getElementById("upWhy").textContent = all ? "Hazırsın — defterini yükleyebilirsin." : "Listeyi tamamlayınca yükleme açılır.";
+}
+
+screens.login();
+</script>
+</body>
+</html>
