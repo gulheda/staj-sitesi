@@ -126,7 +126,11 @@ function home() {
   if (s === "review") h = `
     <h1>Başvurun inceleniyor.</h1>
     <p class="sub">Senden bir işlem beklenmiyor. Sonuçlanınca bildirimle haber vereceğiz.</p>
-    <div class="box info">Başvurular genellikle 5 iş günü içinde incelenir.</div>`;
+    <div class="box info">Başvurular genellikle <b>5 iş günü</b> içinde incelenir.</div>
+    <div class="box info" style="background:#eff6ff"><b>Bu arada yapabileceklerin:</b><br>
+      • <button class="link" onclick="go('docs')">Defter sayfası şablonunu şimdiden indir</button><br>
+      • <button class="link" onclick="go('guide')">Sürecin devamında seni neler bekliyor, göz at</button><br>
+      • 🎬 Vlog için fikir toplamaya başla — stajın ilk gününden çekim yapman gerekecek</div>`;
 
   if (s === "fix") h = `
     <h1>Bir belgeyi düzeltmen gerekiyor.</h1>
@@ -187,7 +191,8 @@ function home() {
 
   if (s === "evaluating") h = `
     <h1>Defterin değerlendiriliyor.</h1>
-    <p class="sub">Senden bir işlem beklenmiyor. Sonuç açıklanınca haber vereceğiz.</p>
+    <p class="sub">Senden bir işlem beklenmiyor. Sonuç açıklanınca haber vereceğiz. Sonuçlandığında
+    stajın kabul edilir ve notun OBS'ye işlenir; düzeltme istenirse ne yapacağın burada yazar.</p>
     ${a.sicil_confirmed ? '<div class="box ok">✓ Sicil fişin bölüme ulaştı. Her şey tamam.</div>'
       : a.sicil_delivered ? '<div class="box info">Sicil fişini teslim ettiğini işaretledin — komisyon zarfı alınca onaylayacak.</div>'
       : `<div class="box warn">Sicil fişini henüz götürmediysen unutma: işyerinin <b>fotoğraflı</b> doldurduğu fişi kapalı zarfla bölüm sekreterliğine elden götür.<br><br>
@@ -226,17 +231,19 @@ function home() {
       </div></div>`;
   }
 
-  if (ME.notifications.length) {
-    side += `<div class="sidecard"><h4>Bildirimler</h4>
-      ${ME.notifications.slice(0, 5).map(n => `<div class="notif" style="opacity:${n.seen ? ".65" : "1"};font-size:13px">
-        ${n.text} <span class="muted">· ${n.created_at.slice(0, 10)}</span></div>`).join("")}</div>`;
-  }
+  // Bildirim geçmişi ana sütunun altında: sol kart kısa kalıp sayfa dengesiz görünmesin.
+  const notifHist = ME.notifications.length
+    ? `<div style="border-top:1px solid #f3f4f6;margin-top:26px;padding-top:14px">
+        <p class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:8px">Bildirimler</p>
+        ${ME.notifications.slice(0, 4).map(n => `<div class="notif" style="opacity:${n.seen ? ".7" : "1"};font-size:13.5px">
+          ${n.text} <span class="muted">· ${n.created_at.slice(0, 10)}</span></div>`).join("")}</div>` : "";
 
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
   el(`<div class="cols">
     <section class="colmain">
       <div class="m-only">${prog(stageNo)}</div>
-      ${notifs}${h}${takildin}
+      <p class="eyeb">Güncel durumun</p>
+      ${notifs}${h}${takildin}${notifHist}
     </section>
     <aside class="colside">${side}</aside>
   </div>`);
@@ -309,21 +316,47 @@ async function wizard(msg) {
       • Dönem içi: her ayın <b>10. gününe kadar</b> (10 dâhil)</div>
     <button class="big" onclick="wSave(3,{tur:document.querySelector('input[name=t]:checked').value})">Devam et</button>${backB}`;
 
-  if (n === 3) body = `
+  if (n === 3) {
+    const abroad = !!a.yurtdisi;
+    // Kayıtlı değerleri geri doldur: yurt dışıysa "Şehir, Ülke" biçiminde saklanır.
+    let savedIl = "", savedUlke = "", savedSehir = "";
+    if (abroad && a.kurum_sehir) { const p = a.kurum_sehir.split(", "); savedSehir = p[0] || ""; savedUlke = p[1] || ""; }
+    else savedIl = a.kurum_sehir || "";
+    const faalStd = FAALIYETLER.includes(a.kurum_faaliyet);
+    body = `
     <h1>Staj yapacağın kurum</h1>
     <label>Kurumun adı</label>
     <input id="kadi" value="${a.kurum_adi || ""}" placeholder="Şirketin tam adını yaz" oninput="stepCheck(3)">
-    <label>Hangi şehirde?</label>
-    <input id="ksehir" value="${a.kurum_sehir || ""}" placeholder="Balıkesir" oninput="stepCheck(3)">
-    <label>Ne iş yapıyor?</label>
-    <input id="kfaal" value="${a.kurum_faaliyet || ""}" placeholder="ör. web yazılımları geliştiriyor" oninput="stepCheck(3)">
-    <label class="check" style="border:0;margin-top:14px"><input type="checkbox" id="kyurt" ${a.yurtdisi ? "checked" : ""}
-      onchange="$('yurtInfo').style.display=this.checked?'block':'none'"> Kurum yurt dışında</label>
-    <div id="yurtInfo" class="box warn" style="display:${a.yurtdisi ? "block" : "none"}">
-      Yurt dışı stajında sigortanı üniversite yapamaz — <b>SGK'yı kendi imkânlarınla yaptırman gerekir.</b>
-      Komisyon başvurunu buna göre değerlendirecek.</div>
-    <button class="big" id="nextBtn" disabled onclick="wSave(4,{kurum_adi:$('kadi').value.trim(),kurum_sehir:$('ksehir').value.trim(),kurum_faaliyet:$('kfaal').value.trim(),yurtdisi:$('kyurt').checked?1:0})">Devam et</button>
+    <label>Kurum nerede?</label>
+    <label class="radio"><input type="radio" name="yer" value="tr" ${abroad ? "" : "checked"} onchange="yerToggle()"> Türkiye'de</label>
+    <label class="radio"><input type="radio" name="yer" value="yd" ${abroad ? "checked" : ""} onchange="yerToggle()"> Yurt dışında</label>
+    <div id="yerTr" style="display:${abroad ? "none" : "block"}">
+      <label>İl</label>
+      <select id="il" onchange="stepCheck(3)"><option value="">— il seç —</option>
+        ${ILLER.map(i => `<option ${savedIl === i ? "selected" : ""}>${i}</option>`).join("")}</select>
+    </div>
+    <div id="yerYd" style="display:${abroad ? "block" : "none"}">
+      <label>Ülke</label>
+      <select id="ulke" onchange="stepCheck(3)"><option value="">— ülke seç —</option>
+        ${ULKELER.map(u => `<option ${savedUlke === u ? "selected" : ""}>${u}</option>`).join("")}</select>
+      <label>Şehir</label>
+      <input id="ksehir" value="${savedSehir}" placeholder="ör. Berlin" oninput="stepCheck(3)">
+      <div class="box warn">Yurt dışı stajında sigortanı üniversite yapamaz —
+        <b>SGK'yı kendi imkânlarınla yaptırman gerekir.</b> Komisyon başvurunu buna göre değerlendirecek.</div>
+    </div>
+    <label>Ne üzerine çalışıyor?</label>
+    <select id="faal" onchange="$('faalDsat').style.display=this.value==='Diğer'?'block':'none';stepCheck(3)">
+      <option value="">— alan seç —</option>
+      ${FAALIYETLER.map(f => `<option ${a.kurum_faaliyet === f ? "selected" : ""}>${f}</option>`).join("")}
+      <option ${a.kurum_faaliyet && !faalStd ? "selected" : ""}>Diğer</option>
+    </select>
+    <div id="faalDsat" style="display:${a.kurum_faaliyet && !faalStd ? "block" : "none"}">
+      <label>Kısaca yaz</label>
+      <input id="faalD" value="${!faalStd ? (a.kurum_faaliyet || "") : ""}" placeholder="ör. tarım makineleri üretiyor" oninput="stepCheck(3)">
+    </div>
+    <button class="big" id="nextBtn" disabled onclick="wSaveKurum()">Devam et</button>
     <p class="why" id="why"></p>${backB}`;
+  }
 
   if (n === 4) body = `
     <h1>Senden sorumlu mühendis kim?</h1>
@@ -417,19 +450,61 @@ async function wizard(msg) {
    butonun altında yazar. Böylece öğrenci hatalı/eksik bir adımı geçemez —
    sonda hata mesajı görmesi imkânsızdır. */
 const telOk = (v) => { const r = v.replace(/\D/g, ""); return r.length >= 10 && r.length <= 11 && r.startsWith("0"); };
+
+const ILLER = ["Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
+  "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale",
+  "Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep",
+  "Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman",
+  "Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya",
+  "Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt",
+  "Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"];
+const ULKELER = ["Almanya","Amerika Birleşik Devletleri","Avusturya","Azerbaycan","Belçika","Birleşik Krallık",
+  "Bosna Hersek","Bulgaristan","Çekya","Danimarka","Estonya","Finlandiya","Fransa","Gürcistan","Hollanda","İrlanda",
+  "İspanya","İsveç","İsviçre","İtalya","Japonya","Kanada","Kazakistan","KKTC","Kore (Güney)","Litvanya","Macaristan",
+  "Malta","Norveç","Özbekistan","Polonya","Portekiz","Romanya","Sırbistan","Slovakya","Yunanistan","Diğer"];
+const FAALIYETLER = ["Yazılım geliştirme","Web teknolojileri","Mobil uygulama","Gömülü sistemler / IoT",
+  "Siber güvenlik","Veri analitiği / Yapay zekâ","Oyun geliştirme","Ağ / Sistem / Donanım","Ar-Ge / Teknokent",
+  "Bilişim danışmanlığı","E-ticaret","Savunma sanayii"];
+
+function yerToggle() {
+  const abroad = document.querySelector('input[name="yer"]:checked').value === "yd";
+  $("yerTr").style.display = abroad ? "none" : "block";
+  $("yerYd").style.display = abroad ? "block" : "none";
+  stepCheck(3);
+}
+
 const STEP_REQ = {
   1: [["telefon", telOk, "0 ile başlayan 11 haneli telefon numaranı yaz"]],
-  3: [["kadi", v => v.trim().length >= 3, "kurumun adını yaz"],
-      ["ksehir", v => v.trim().length >= 2, "şehri yaz"],
-      ["kfaal", v => v.trim().length >= 3, "kurumun ne iş yaptığını yaz"]],
+  3: () => {
+    const out = [];
+    if (($("kadi").value || "").trim().length < 3) out.push("kurumun adını yaz");
+    const abroad = document.querySelector('input[name="yer"]:checked')?.value === "yd";
+    if (abroad) {
+      if (!$("ulke").value) out.push("ülkeyi seç");
+      if (($("ksehir").value || "").trim().length < 2) out.push("şehri yaz");
+    } else if (!$("il").value) out.push("ili seç");
+    const f = $("faal").value;
+    if (!f) out.push("çalışma alanını seç");
+    else if (f === "Diğer" && ($("faalD").value || "").trim().length < 3) out.push("ne iş yaptığını kısaca yaz");
+    return out;
+  },
   4: [["mad", v => v.trim().length >= 5 && v.trim().includes(" "), "mühendisin adını ve soyadını yaz"]],
 };
 function stepCheck(n) {
   const btn = $("nextBtn"), why = $("why");
   if (!btn) return;
-  const eksik = (STEP_REQ[n] || []).filter(([id, ok]) => !ok($(id)?.value || "")).map(([, , msg]) => msg);
+  const req = STEP_REQ[n];
+  const eksik = typeof req === "function" ? req()
+    : (req || []).filter(([id, ok]) => !ok($(id)?.value || "")).map(([, , msg]) => msg);
   btn.disabled = eksik.length > 0;
   why.textContent = eksik.length ? "Devam etmek için: " + eksik.join(" · ") : "";
+}
+
+function wSaveKurum() {
+  const abroad = document.querySelector('input[name="yer"]:checked').value === "yd";
+  const sehir = abroad ? `${$("ksehir").value.trim()}, ${$("ulke").value}` : $("il").value;
+  const faal = $("faal").value === "Diğer" ? $("faalD").value.trim() : $("faal").value;
+  wSave(4, { kurum_adi: $("kadi").value.trim(), kurum_sehir: sehir, kurum_faaliyet: faal, yurtdisi: abroad ? 1 : 0 });
 }
 
 function wPhone() {
