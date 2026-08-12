@@ -135,7 +135,9 @@ async function load() {
     <header>
       <h1>Komisyon Paneli</h1>
       <span class="stats">düzeltme bekleyen: ${d.stats.fix} · kabul edilen staj: ${d.stats.accepted} ·
-        <a href="#" onclick="api('/logout',{method:'POST'}).then(()=>loginScreen());return false">çıkış</a></span>
+        <a href="#" onclick="load();return false">yenile</a> ·
+        <a href="#" onclick="api('/logout',{method:'POST'}).then(()=>loginScreen());return false">çıkış</a><br>
+        <span style="font-size:12px">son güncelleme: ${new Date().toLocaleTimeString("tr-TR")} — 30 sn'de bir kendini yeniler</span></span>
     </header>
     <h2>Bekleyen işler (${d.apps.length})</h2>
     ${d.apps.length ? d.apps.map(appCard).join("") : `<div class="empty">Bekleyen iş yok 👍</div>`}
@@ -176,6 +178,14 @@ async function answer(id) {
 }
 
 load();
+// Sayfa açıkken yeni başvurular kendiliğinden görünsün: 30 saniyede bir yenile.
+// Bir kartta yazı yazılıyorsa (odak formda ise) yenileme o turu atlar.
+setInterval(() => {
+  const a = document.activeElement;
+  if (a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT" || a.tagName === "SELECT")) return;
+  if (document.querySelector(".login")) return;
+  load();
+}, 30000);
 </script>
 </body>
 </html>

@@ -305,10 +305,13 @@ app.get("/api/questions", auth(), (req, res) => {
 
 // ─────────── Komisyon paneli ───────────
 app.get("/api/admin/queue", auth("admin"), (req, res) => {
+  // Sıralama: yeni başvurular en üstte (en son gelen ilk), sonra defter
+  // değerlendirmeleri, en sonda yalnız sicil onayı bekleyenler.
   const apps = db.prepare(`
     SELECT a.*, u.name, u.ogrenci_no FROM applications a JOIN users u ON u.id=a.user_id
     WHERE a.status IN ('submitted','evaluating') OR (a.sicil_delivered=1 AND a.sicil_confirmed=0)
-    ORDER BY a.start_date`).all();
+    ORDER BY CASE a.status WHEN 'submitted' THEN 0 WHEN 'evaluating' THEN 1 ELSE 2 END,
+             a.updated_at DESC`).all();
   for (const a of apps) {
     a.documents = db.prepare("SELECT * FROM documents WHERE application_id=? ORDER BY id DESC").all(a.id);
     a.workdays = a.start_date && a.end_date
