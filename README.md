@@ -19,6 +19,7 @@ npm start        # http://localhost:3000
 
 | Kim | Giriş | Şifre | Durumu |
 |---|---|---|---|
+| Elif Aydın | `20251004444` | ilk giriş: TC `55555555555` → kendi şifresini belirler | hiç başvurusu yok, sıfırdan başlar |
 | Deniz Yılmaz | `20251001234` | ilk giriş: TC `11111111111` → kendi şifresini belirler | süreç başında |
 | Mert Kaya | `20251001111` | `mert1234` | başvurusu incelemede |
 | Ayşe Demir | `20251002222` | `ayse1234` | düzeltme istendi |
