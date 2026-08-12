@@ -21,8 +21,30 @@
   nav a.active { background: #eef2ff; color: #1e40af; font-weight: 600; }
   main { width: 100%; max-width: 640px; margin: 36px auto; padding: 42px 46px; background: #fff;
          border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+  /* Stajım ekranı: masaüstünde iki sütun — solda tek işlem, sağda durum paneli */
+  main.wide { max-width: 1020px; background: transparent; border: 0; box-shadow: none; padding: 32px 24px; }
+  .cols { display: grid; grid-template-columns: 1fr 310px; gap: 26px; align-items: start; }
+  .colmain { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 38px 42px;
+             box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+  .sidecard { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+  .sidecard h4 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #6b7280; margin-bottom: 10px; }
+  .steps-v { list-style: none; }
+  .steps-v li { padding: 4px 0 4px 26px; position: relative; font-size: 14px; color: #9ca3af; }
+  .steps-v li::before { content: "·"; position: absolute; left: 6px; }
+  .steps-v li.done { color: #15803d; } .steps-v li.done::before { content: "✓"; left: 2px; }
+  .steps-v li.now { color: #1e40af; font-weight: 700; } .steps-v li.now::before { content: "→"; left: 0; }
+  .m-only { display: none; }
+  .big { max-width: 440px; }
+  .center .big { margin-left: auto; margin-right: auto; }
+  @media (max-width: 899px) {
+    .cols { grid-template-columns: 1fr; }
+    .m-only { display: block; }
+    .d-only { display: none; }
+  }
   @media (max-width: 700px) {
-    main { margin: 0; border: 0; border-radius: 0; padding: 32px 24px; flex: 1; }
+    main, main.wide { margin: 0; border: 0; border-radius: 0; padding: 32px 24px; flex: 1; background: #fff; }
+    .colmain { border: 0; padding: 0; box-shadow: none; }
+    .big { max-width: none; }
     header .logo small { display: none; }
     .hwrap { padding: 12px 16px; }
   }
@@ -92,7 +114,10 @@
         <a data-nav="help" onclick="go('help')">Yardım</a>
         <a data-nav="guide" onclick="go('guide')">Rehber</a>
       </nav>
-      <button class="link" style="font-size:13px" onclick="logout()">Çıkış</button>
+      <span style="display:flex;align-items:center;gap:12px">
+        <span id="uname" class="muted" style="font-size:13.5px"></span>
+        <button class="link" style="font-size:13px" onclick="logout()">Çıkış</button>
+      </span>
     </div>
   </header>
   <main id="app"></main>

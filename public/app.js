@@ -6,7 +6,12 @@ let ME = null;          // /api/me cevabı
 let wizardApp = null;   // sihirbazdaki taslak
 
 const $ = (id) => document.getElementById(id);
-const el = (html) => { $("app").innerHTML = html; window.scrollTo(0, 0); };
+const el = (html) => {
+  const m = $("app");
+  m.innerHTML = html;
+  m.classList.toggle("wide", html.includes('class="cols"')); // iki sütunlu Stajım ekranı geniş düzen kullanır
+  window.scrollTo(0, 0);
+};
 
 async function api(path, opts = {}) {
   if (opts.json) {
@@ -23,6 +28,7 @@ async function api(path, opts = {}) {
 function nav(active) {
   $("topbar").style.display = "flex";
   document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.nav === active));
+  if (ME?.user) $("uname").textContent = ME.user.name;
 }
 
 const STAGES = ["Staj yeri bulma", "Belgeleri hazırlama", "Başvuru", "Komisyon incelemesi", "Onay",
@@ -102,27 +108,27 @@ function home() {
   nav("home");
   const s = ME.stage, a = ME.application;
   const notifs = ME.notifications.filter(n => !n.seen).map(n => `<div class="notif">🔔 ${n.text}</div>`).join("");
-  const P = prog(STAGE_NO[s] ?? 0);
+  const stageNo = STAGE_NO[s] ?? 0;
   let h = "";
 
-  if (s === "noplace") h = `${P}
+  if (s === "noplace") h = `
     <h1>Önce staj yapacağın bir kurum bul.</h1>
     <p class="sub">Kurumda bilgisayar ya da yazılım alanında çalışan bir mühendis olmalı — tek şart bu.</p>
     <div class="box info">Emin değilsen kuruma şunu sor:<br><i>“Staj süresince benden sorumlu olacak mühendisin unvanı nedir?”</i></div>
     <button class="big" onclick="go('accept')">Kurum buldum</button>
     <p class="after">Sonraki adım: kurumun imzalayacağı belgeyi birlikte hazırlayacağız.</p>`;
 
-  if (s === "draft") h = `${P}
+  if (s === "draft") h = `
     <h1>Başvurun yarım kaldı.</h1>
     <p class="sub">Bilgilerin kaydedildi — kaldığın yerden devam edebilirsin.</p>
     <button class="big" onclick="go('wizard')">Devam et (Adım ${a.wizard_step}/7)</button>`;
 
-  if (s === "review") h = `${P}
+  if (s === "review") h = `
     <h1>Başvurun inceleniyor.</h1>
     <p class="sub">Senden bir işlem beklenmiyor. Sonuçlanınca bildirimle haber vereceğiz.</p>
     <div class="box info">Başvurular genellikle 5 iş günü içinde incelenir.</div>`;
 
-  if (s === "fix") h = `${P}
+  if (s === "fix") h = `
     <h1>Bir belgeyi düzeltmen gerekiyor.</h1>
     <p class="sub">Komisyonun notu:</p>
     <div class="box warn"><b>${a.fix_note || "Belgende düzeltme istendi."}</b></div>
@@ -130,14 +136,14 @@ function home() {
       <span class="muted">PDF veya fotoğraf · en fazla 10 MB</span></div>
     <p class="after">Yeni belgen doğrudan komisyona gidecek.</p>`;
 
-  if (s === "rejected") h = `${P}
+  if (s === "rejected") h = `
     <h1>Başvurun kabul edilmedi.</h1>
     <div class="box warn">${a.fix_note || "Gerekçe için bölümle iletişime geçebilirsin."}</div>
     <button class="big" onclick="startApplication()">Yeni başvuru yap</button>`;
 
   if (s === "sgk") {
     const sgkSon = new Date(new Date(a.start_date) - 3 * 86400000).toISOString().slice(0, 10);
-    h = `${P}
+    h = `
     <h1>Başvurun onaylandı ✓</h1>
     <p class="sub">Stajın <b>${fmtDate(a.start_date)}</b> tarihinde başlıyor${daysTo(a.start_date) > 0 ? ` (${daysTo(a.start_date)} gün kaldı)` : ""}. Başlamadan önce tek bir işin var:</p>
     <div class="box info"><b>Sigorta (SGK) girişini kontrol et.</b><br>
@@ -146,14 +152,14 @@ function home() {
     <p class="hint" style="margin-top:14px">📅 Yaklaşan tarihler: <b>${fmtDate(sgkSon)}</b> — SGK kontrolü için son gün · <b>${fmtDate(a.start_date)}</b> — staj başlangıcın${ME.progress ? ` · toplam <b>${ME.progress.total} iş günü</b>` : ""}</p>`;
   }
 
-  if (s === "obs") h = `${P}
+  if (s === "obs") h = `
     <h1>Sırada tek bir adım var: OBS kaydı.</h1>
     <p class="sub">OBS'de staj dersini seçmen gerekiyor — yoksa stajın nota işlenemez.</p>
     <div class="box info"><b>1.</b> OBS'ye gir<br><b>2.</b> Ders kaydı → <b>“Staj ${a.staj_no === 2 ? "II" : "I"}”</b> dersini seç<br><b>3.</b> Onayla</div>
     <button class="big" onclick="markObs()">OBS kaydımı yaptım ✓</button>
     <p class="after">Bunu işaretleyince staj başlangıcına kadar yapman gereken başka bir şey kalmıyor.</p>`;
 
-  if (s === "ready") h = `${P}
+  if (s === "ready") h = `
     <h1>Her şey hazır 🎒</h1>
     <p class="sub">Stajın <b>${fmtDate(a.start_date)}</b>'de başlıyor (${daysTo(a.start_date)} gün kaldı). Şu an yapman gereken bir şey yok.</p>
     <div class="box info">İpucu: defter şablonunu şimdiden indirip staj başlar başlamaz doldurmaya başlayabilirsin. → <button class="link" onclick="go('docs')">Belgelerim</button></div>`;
@@ -161,7 +167,7 @@ function home() {
   if (s === "during") {
     const pr = ME.progress || {};
     const kalan = pr.total && pr.done != null ? pr.total - pr.done : null;
-    h = `${P}
+    h = `
     <h1>Stajın devam ediyor.</h1>
     <p class="sub"><b>${pr.done ?? "?"}. iş günü / ${pr.total ?? "?"}</b>${kalan != null ? ` · kalan ${kalan} iş günü` : ""} · Bitiş: ${fmtDate(a.end_date)}</p>
     <div class="prog"><div class="bar"><i style="width:${pr.total ? Math.round(pr.done / pr.total * 100) : 0}%"></i></div>
@@ -171,7 +177,7 @@ function home() {
     <button class="big" onclick="go('docs')">Defter sayfasını indir</button>`;
   }
 
-  if (s === "deliver" || s === "fix_defter") h = `${P}
+  if (s === "deliver" || s === "fix_defter") h = `
     <h1>${s === "fix_defter" ? "Defterinde düzeltme istendi." : "Stajın bitti 🎉"}</h1>
     ${s === "fix_defter" ? `<div class="box warn"><b>${a.fix_note || ""}</b></div>` :
       `<p class="sub">Son iki işin kaldı:</p>
@@ -179,7 +185,7 @@ function home() {
        <b>2.</b> Sicil fişini kapalı zarfla bölüm sekreterliğine elden götür</div>`}
     <button class="big" onclick="go('deliver')">${s === "fix_defter" ? "Defteri yeniden yükle" : "Defteri yüklemeye başla"}</button>`;
 
-  if (s === "evaluating") h = `${P}
+  if (s === "evaluating") h = `
     <h1>Defterin değerlendiriliyor.</h1>
     <p class="sub">Senden bir işlem beklenmiyor. Sonuç açıklanınca haber vereceğiz.</p>
     ${a.sicil_confirmed ? '<div class="box ok">✓ Sicil fişin bölüme ulaştı. Her şey tamam.</div>'
@@ -187,42 +193,53 @@ function home() {
       : `<div class="box warn">Sicil fişini henüz götürmediysen unutma: işyerinin <b>fotoğraflı</b> doldurduğu fişi kapalı zarfla bölüm sekreterliğine elden götür.<br><br>
          <label class="check" style="border:0"><input type="checkbox" onchange="markSicil(this.checked)"> Zarfı teslim ettim</label></div>`}`;
 
-  if (s === "accepted") h = `${P}
+  if (s === "accepted") h = `
     <div class="center"><div class="icon">🎓</div></div>
     <h1 class="center">Stajın kabul edildi!</h1>
     <p class="sub center">Her şey tamamlandı. Yapman gereken başka bir şey yok.</p>
     <div class="box info center">Staj notun OBS'ye işlenince orada görünecek.${a.staj_no < 2 ? " İkinci stajın için hazır olduğunda buradan yeni başvuru açabileceksin." : ""}</div>`;
-
-  // Başvuru özeti: gönderimden sonra öğrenci kendi bilgilerini her zaman görebilmeli.
-  if (a && !["draft", "noplace"].includes(s)) {
-    const gunAd = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum" };
-    const gunler = (a.calisma_gunleri || "").split(",").filter(Boolean).map(g => gunAd[g]).join("-");
-    h += `<details style="margin-top:22px"><summary style="cursor:pointer;color:#1d4ed8;font-size:14.5px">Başvurunun özeti</summary>
-      <div class="box info" style="margin-top:10px;font-size:14.5px">
-        ${a.tur === "donem" ? `Dönem içi staj${gunler ? ` (${gunler})` : ""}` : "Yaz stajı"} · ${a.staj_no}. staj<br>
-        <b>${a.kurum_adi || "—"}</b>${a.kurum_sehir ? ", " + a.kurum_sehir : ""}<br>
-        ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}${ME.progress ? ` · ${ME.progress.total} iş günü` : ""}<br>
-        Sorumlu mühendis: ${a.muh_ad || "—"} (${a.muh_unvan || "—"})<br>
-        Ücret: ${a.ucret === "evet" ? "ödenecek" : a.ucret === "hayir" ? "ödenmeyecek" : "belirsiz"}
-      </div></details>`;
-  }
-
-  // Bildirim geçmişi: bildirimler bir kez görünüp kaybolmaz.
-  if (ME.notifications.length) {
-    h += `<details style="margin-top:10px"><summary style="cursor:pointer;color:#6b7280;font-size:14px">Bildirimler (${ME.notifications.length})</summary>
-      ${ME.notifications.map(n => `<div class="notif" style="opacity:${n.seen ? ".65" : "1"}">
-        ${n.text} <span class="muted">· ${n.created_at.slice(0, 10)}</span></div>`).join("")}</details>`;
-  }
 
   // Bağlamsal yardım: her ekranın altında, bulunduğun aşamayla ilgili SSS'ye götürür.
   const TOPIC = { noplace: "staj yeri", draft: "başvuru", review: "başvuru", fix: "belge",
     sgk: "SGK", obs: "OBS", ready: "staj", during: "staj defteri", deliver: "defter teslim",
     fix_defter: "defter", evaluating: "değerlendirme", rejected: "başvuru" };
   const takildin = TOPIC[s]
-    ? `<p class="hint" style="margin-top:26px;text-align:center">Takıldın mı?
+    ? `<p class="hint" style="margin-top:26px">Takıldın mı?
        <button class="link" onclick="helpScreen('${TOPIC[s]}')">Bu aşamayla ilgili sık sorulan sorular</button></p>` : "";
 
-  el(notifs + h + takildin);
+  // ── Sağ panel: süreç, başvuru özeti, bildirimler ──
+  let side = `<div class="sidecard"><h4>Staj sürecin</h4>
+    <ul class="steps-v">${STAGES.map((st, i) =>
+      `<li class="${i < stageNo ? "done" : (i === stageNo ? "now" : "")}">${st}</li>`).join("")}</ul>
+  </div>`;
+
+  if (a && !["draft", "noplace"].includes(s)) {
+    const gunAd = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum" };
+    const gunler = (a.calisma_gunleri || "").split(",").filter(Boolean).map(g => gunAd[g]).join("-");
+    side += `<div class="sidecard"><h4>Başvurun</h4>
+      <div style="font-size:14px;line-height:1.7">
+        ${a.tur === "donem" ? `Dönem içi staj${gunler ? ` (${gunler})` : ""}` : "Yaz stajı"} · ${a.staj_no}. staj<br>
+        <b>${a.kurum_adi || "—"}</b>${a.kurum_sehir ? ", " + a.kurum_sehir : ""}<br>
+        ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}${ME.progress ? `<br>${ME.progress.total} iş günü` : ""}<br>
+        <span class="muted">Sorumlu: ${a.muh_ad || "—"} (${a.muh_unvan || "—"})<br>
+        Ücret: ${a.ucret === "evet" ? "ödenecek" : a.ucret === "hayir" ? "ödenmeyecek" : "belirsiz"}</span>
+      </div></div>`;
+  }
+
+  if (ME.notifications.length) {
+    side += `<div class="sidecard"><h4>Bildirimler</h4>
+      ${ME.notifications.slice(0, 5).map(n => `<div class="notif" style="opacity:${n.seen ? ".65" : "1"};font-size:13px">
+        ${n.text} <span class="muted">· ${n.created_at.slice(0, 10)}</span></div>`).join("")}</div>`;
+  }
+
+  // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
+  el(`<div class="cols">
+    <section class="colmain">
+      <div class="m-only">${prog(stageNo)}</div>
+      ${notifs}${h}${takildin}
+    </section>
+    <aside class="colside">${side}</aside>
+  </div>`);
 }
 
 
