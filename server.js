@@ -17,6 +17,19 @@ const dateOptsOf = (appRow) => ({
 // EK-1 notu: kabul formu staj başlangıcından 20 gün önce teslim edilir.
 const minStartDate = () => new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10);
 
+// Bölüm duyurusu: yaz başvuruları 1 Haziran–15 Temmuz; dönem içi her ayın 10'una kadar.
+// Pilot sürümde bilgilendirme modundadır; STAJ_DONEM_ZORUNLU=1 ile kesin engele döner.
+function applicationWindow(tur, t = today()) {
+  const [y, , d] = t.split("-").map(Number);
+  if (tur === "donem") {
+    return { open: d <= 10,
+      text: "Dönem içi staj başvuruları her ayın 10. gününe kadar (10. gün dâhil) yapılır." };
+  }
+  return { open: t >= `${y}-06-01` && t <= `${y}-07-15`,
+    text: "Yaz dönemi staj başvuruları 1 Haziran – 15 Temmuz tarihleri arasında kabul edilir." };
+}
+const PERIOD_ENFORCE = process.env.STAJ_DONEM_ZORUNLU === "1";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = path.join(__dirname, "uploads");
@@ -201,6 +214,9 @@ app.post("/api/application/submit", auth(), (req, res) => {
   if (!hasKabul) missing.push("kabul belgesi (yüklenmemiş)");
   if (missing.length)
     return res.status(400).json({ error: "Başvuru gönderilemedi. Eksik: " + missing.join(", ") + "." });
+  const win = applicationWindow(appRow.tur);
+  if (!win.open && PERIOD_ENFORCE)
+    return res.status(400).json({ error: win.text + " Şu an başvuru dönemi dışındasın; dönem açıldığında sana haber vereceğiz." });
   db.prepare("UPDATE applications SET status='submitted', updated_at=datetime('now') WHERE id=?").run(appRow.id);
   notify(req.user.id, "Başvurunu aldık. Komisyon inceleyecek; sonuçlanınca haber vereceğiz.");
   res.json({ ok: true });

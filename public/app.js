@@ -167,6 +167,7 @@ function home() {
     <div class="prog"><div class="bar"><i style="width:${pr.total ? Math.round(pr.done / pr.total * 100) : 0}%"></i></div>
       <div class="txt"><span>Defterinde şu ana kadar <b>${pr.done ?? "?"} sayfa</b> olmalı (her iş günü için 1 sayfa)</span></div></div>
     <div class="box warn"><b>Her gün defter sayfanı doldur ve imzalat.</b> Son güne bırakma — en çok yapılan hata bu.</div>
+    ${pr.done <= 2 ? '<div class="box info">🎬 <b>Vlog çekimine bugün başla:</b> videon stajın <b>ilk</b>, orta ve son günlerinden bölümler içermeli. Son gün birkaç fotoğrafla olmaz.</div>' : ""}
     <button class="big" onclick="go('docs')">Defter sayfasını indir</button>`;
   }
 
@@ -284,6 +285,9 @@ async function wizard(msg) {
     <h1>Stajını ne zaman yapacaksın?</h1>
     <label class="radio"><input type="radio" name="t" value="yaz" ${a.tur !== "donem" ? "checked" : ""}> Yaz tatilinde</label>
     <label class="radio"><input type="radio" name="t" value="donem" ${a.tur === "donem" ? "checked" : ""}> Dönem içinde <span class="muted">(haftada en az 3 gün)</span></label>
+    <div class="box info" style="font-size:14px">📅 <b>Başvuru dönemleri:</b><br>
+      • Yaz stajı: <b>1 Haziran – 15 Temmuz</b> arasında<br>
+      • Dönem içi: her ayın <b>10. gününe kadar</b> (10 dâhil)</div>
     <button class="big" onclick="wSave(3,{tur:document.querySelector('input[name=t]:checked').value})">Devam et</button>${backB}`;
 
   if (n === 3) body = `
@@ -514,7 +518,8 @@ function sgkScreen() {
       <b>3.</b> Listede staj başlangıç tarihinle bir kayıt olmalı</div>
     <button class="big" onclick="markSgk(true)">Kaydımı gördüm ✓</button>
     <button class="quiet" onclick="markSgk(false)">Kaydımı göremiyorum</button>
-    <p class="after">“Gördüm” dersen sıradaki adımın OBS kaydı. “Göremiyorum” dersen durumu bölüme biz iletiriz — sana bir iş düşmez.</p>`);
+    <p class="after">“Gördüm” dersen sıradaki adımın OBS kaydı. “Göremiyorum” dersen durumu bölüme biz iletiriz — sana bir iş düşmez.</p>
+    <p class="hint" style="text-align:center">Sigorta işlemleriyle ilgili ayrıntılı bilgi için: <b>mfstaj@balikesir.edu.tr</b></p>`);
 }
 async function markSgk(seen) {
   const r = await api("/sgk", { method: "POST", json: { seen } });
@@ -535,7 +540,7 @@ function deliverScreen() {
   const items = [`Her staj günü için ayrı sayfa hazırladım (${total} iş günü = ${total} sayfa)`,
     "Sayfaları mürekkepli kalemle, el yazısıyla doldurdum (bilgisayarda yazılmaz)",
     "Bütün sayfaları işyeri sorumlusu imzaladı", "Gerekli kaşeler sayfalarda var",
-    "Kapak sayfasını ekledim", "Vlog bağlantısı ve QR kodu son sayfada",
+    "Kapak sayfasını ekledim", "Vlog (en az 10 dk; ilk-orta-son günlerden bölümler) bağlantısı ve QR kodu son sayfada",
     "PDF net okunuyor (bulanık/karanlık sayfa yok)", "Dosya boyutu 10 MB'ın altında"];
   el(`${back}
     <h1>Defterini yüklemeden önce kontrol et.</h1>
@@ -587,18 +592,12 @@ const BELGELER = {
       nezaman: "Staj başlangıcından <b>en az 20 gün önce</b>.",
       nereye: "Bu sisteme yüklenir.",
       indir: "/belgeler/ek1a-zorunlu-staj-kabul-formu-donem-ici.pdf" },
-    { icon: "📊", ad: "Ücret katkısı başvuru listesi",
-      nedir: "Staj ücreti alacak öğrenciler için İşsizlik Fonu katkısı başvurusunda kullanılan bilgi tablosu (Excel).",
-      neden: "EK-2 formuyla birlikte, devlet katkısının bağlanması için gerekir. Kamu kurumunda staj yapanlar doldurmaz.",
-      doldurur: "Kendi satırını sen doldurursun.",
+    { icon: "📊", ad: "Ücret katkısı başvuru evrakı", resmi: "EK-3",
+      nedir: "Staj ücreti alacak öğrenciler için İşsizlik Fonu katkısı başvurusunda kullanılan öğrenci bilgi tablosu (Excel).",
+      neden: "EK-2 formuyla birlikte devlet katkısının bağlanması için gerekir. Kamu kurumunda staj yapanlar doldurmaz. Önemli: 1. stajın SGK çıkışı yapılmadan sonraki staj için yeni sigorta girişi yapılamaz.",
+      doldurur: "Kendi satırını sen doldurursun (ad, TC, öğrenci no, telefon, doğum tarihi…).",
       nezaman: "Yalnızca 'ücret ödenecek' dediysen; başvuruyla birlikte.", nereye: "Bu sisteme yüklenir.",
       indir: "/belgeler/staj-ucreti-fon-katkisi-basvuru-evraki.xlsx" },
-    { icon: "📊", ad: "Öğrenci bilgi listesi", resmi: "EK-3",
-      nedir: "Fakültenin SGK girişlerinde kullandığı öğrenci bilgi tablosu (Excel).",
-      neden: "Sigorta girişinin doğru bilgilerle yapılması için gerekir. Önemli: 1. stajın SGK çıkışı yapılmadan sonraki staj için yeni giriş yapılamaz.",
-      doldurur: "Kendi satırını sen doldurursun (ad, TC, öğrenci no, telefon, doğum tarihi…).",
-      nezaman: "Başvuru sırasında.", nereye: "Bu sisteme yüklenir (bölüm toplu listeye ekler).",
-      indir: "/belgeler/ek3-ogrenci-bilgi-listesi.xlsx" },
     { icon: "📄", ad: "Ücret katkısı bilgi formu", resmi: "EK-2",
       nedir: "İşletme sana staj ücreti ödeyecekse devlet katkısı için gereken form. <b>Kamu kurumlarında staj yapanlar için gerekmez.</b>",
       neden: "Ödenen ücretin bir kısmı İşsizlik Fonu'ndan devlet katkısı olarak karşılanır (20'den az personelli işletmede 2/3'ü, 20 ve üzerinde 1/3'ü).",
@@ -630,10 +629,11 @@ const BELGELER = {
       nezaman: "Defteri birleştirirken en başa eklenir.", nereye: "Defter PDF'inin ilk sayfası olur.",
       indir: "/belgeler/staj-defteri-kapak.docx" },
     { icon: "🎬", ad: "Vlog",
-      nedir: "Staj boyunca çektiğin kısa videolar.",
-      neden: "Staj deneyimini belgelemek için bölüm gereksinimidir.",
-      doldurur: "Sen çekersin.", nezaman: "Staj süresince; son güne bırakma.",
-      nereye: "Video bağlantısı ve QR kodu defterin <b>son sayfasına</b> eklenir." },
+      nedir: "Staj deneyimini anlatan, toplam <b>en az 10 dakikalık</b> video. Yaptığın işleri, deneyimlerini ve çalışma ortamını gösteren kısa videolardan oluşur.",
+      neden: "Bölüm gereksinimidir; komisyon stajın gerçekliğini ve deneyimini bununla görür.",
+      doldurur: "Sen çekersin — işyerinin <b>izin verdiği bölümlerde, izin verdiği şekilde</b>. Online stajda, sen çalışırken ekran görüntüsünün canlı aktığı video parçaları da olur.",
+      nezaman: "Staj süresince: <b>ilk, orta ve son günlerden</b> bölümler içermeli. Son gün birkaç fotoğrafla olmaz — baştan planla.",
+      nereye: "Video YouTube vb. bir platforma yüklenir; bağlantısı hem <b>normal link</b> hem <b>QR kod</b> olarak defterin <b>son sayfasına</b> eklenir." },
   ],
   "Teslim ederken gerekenler": [
     { icon: "📗", ad: "Staj defteri (tamamlanmış)",
@@ -756,6 +756,9 @@ async function sendQ() {
     el(`<div class="center" style="margin-top:30px"><div class="icon">📨</div></div>
       <h1 class="center">Sorun komisyona iletildi.</h1>
       <p class="sub center">Cevap gelince bildirim alacaksın.</p>
+      <div class="box info" style="font-size:14px">Makul sürede cevap alamazsan sırasıyla:<br>
+        <b>1.</b> huseyingunes@gmail.com adresine yaz<br>
+        <b>2.</b> O da olmazsa Teams'ten Hüseyin Güneş veya Hüseyin Ezirmik hocalara ulaş</div>
       <button class="big" onclick="go('home')">Tamam</button>`);
   } catch (e) { alert(e.message); }
 }
