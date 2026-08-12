@@ -394,7 +394,7 @@ deliverCheck(){
     <div class="upload" onclick="uploaded(this)">Defterini (PDF) buraya sürükle veya <u>dosya seç</u></div>
     <button class="big" id="upBtn" disabled onclick="student.stage='evaluating';go('delivered')">Defteri gönder</button>
     <p class="after" id="upWhy">Listeyi tamamlayınca buton açılır.</p>
-    <div class="box warn"><b>Sicil fişi buraya yüklenmez.</b> Kapalı zarfla bölüm sekreterliğine elden götür.<br><br>
+    <div class="box warn"><b>Sicil fişi buraya yüklenmez.</b> İşyerinin <b>fotoğraflı</b> doldurduğu fişi kapalı zarfla bölüm sekreterliğine elden götür.<br><br>
     <label class="check" style="border:0"><input type="checkbox" onchange="student.sicil=this.checked"> Zarfı teslim ettim</label></div>
   `, "home");
 },
@@ -423,7 +423,7 @@ docs(){
     <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">🎬 Vlog rehberi</div>
       <div class="a">Staj boyunca çekeceğin kısa videoların kuralları. Bağlantı ve QR kod defterin son sayfasına eklenir.<br><br><button class="quiet">Rehberi aç</button></div></div>
     <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">✉️ Sicil fişi</div>
-      <div class="a">İşyerinin senin hakkında doldurduğu değerlendirme. <b>Sisteme yüklenmez</b> — kapalı zarfla bölüm sekreterliğine elden götürülür.</div></div>
+      <div class="a">İşyerinin senin hakkında doldurduğu değerlendirme. <b>Fotoğraflı</b> doldurulmalı. <b>Sisteme yüklenmez</b> — kapalı zarfla bölüm sekreterliğine elden götürülür.</div></div>
     <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">✅ Kabul belgen (onaylandı)</div>
       <div class="a">Başvurunda yüklemiştin; komisyon onayladı. Yapman gereken bir şey yok.</div></div>
   `, "docs");
@@ -436,7 +436,7 @@ help(){
       oninput="document.getElementById('res').style.display = this.value.length>3 ? 'block':'none'">
     <div id="res" style="display:none">
       <div class="qa open"><div class="q">Staj en az kaç iş günü olmalı?</div>
-      <div class="a">En az <b>20 iş günü</b>. Hafta sonları ve tatiller sayılmaz — tarih seçerken sistem senin yerine hesaplar.<br><br>
+      <div class="a">Bölümde toplam <b>40 iş günü</b> staj yapılır: <b>iki ayrı 20 iş günlük</b> staj. Her staj en az 20 iş günü olmalı; hafta sonları ve tatiller sayılmaz — tarih seçerken sistem senin yerine hesaplar.<br><br>
       İşine yaradı mı? <button class="link">👍</button> <button class="link">👎</button></div></div>
     </div>
     <h1 style="font-size:18px;margin-top:24px">Çok sorulanlar</h1>
