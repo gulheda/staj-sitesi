@@ -183,6 +183,8 @@ app.post("/api/application/submit", auth(), (req, res) => {
   if (!appRow.tur) missing.push("staj türü");
   if (!appRow.kurum_adi) missing.push("kurum bilgisi");
   if (!appRow.muh_ad) missing.push("sorumlu mühendis");
+  if (appRow.muh_unvan === "Bilmiyorum")
+    return res.status(400).json({ error: "Sorumlu mühendisin unvanı henüz 'Bilmiyorum' olarak seçili. Kurumdan öğrenip Adım 4'te güncelledikten sonra gönderebilirsin — başvurun taslak olarak saklanıyor, acele etme." });
   if (appRow.tur === "donem" && (allowedDaysOf(appRow) || []).length < 3)
     missing.push("çalışma günleri (haftada en az 3)");
   const dateCheck = checkDates(appRow.start_date, appRow.end_date, { allowedDays: allowedDaysOf(appRow) });

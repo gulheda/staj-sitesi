@@ -192,6 +192,27 @@ function home() {
     <p class="sub center">Her şey tamamlandı. Yapman gereken başka bir şey yok.</p>
     <div class="box info center">Staj notun OBS'ye işlenince orada görünecek.${a.staj_no < 2 ? " İkinci stajın için hazır olduğunda buradan yeni başvuru açabileceksin." : ""}</div>`;
 
+  // Başvuru özeti: gönderimden sonra öğrenci kendi bilgilerini her zaman görebilmeli.
+  if (a && !["draft", "noplace"].includes(s)) {
+    const gunAd = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum" };
+    const gunler = (a.calisma_gunleri || "").split(",").filter(Boolean).map(g => gunAd[g]).join("-");
+    h += `<details style="margin-top:22px"><summary style="cursor:pointer;color:#1d4ed8;font-size:14.5px">Başvurunun özeti</summary>
+      <div class="box info" style="margin-top:10px;font-size:14.5px">
+        ${a.tur === "donem" ? `Dönem içi staj${gunler ? ` (${gunler})` : ""}` : "Yaz stajı"} · ${a.staj_no}. staj<br>
+        <b>${a.kurum_adi || "—"}</b>${a.kurum_sehir ? ", " + a.kurum_sehir : ""}<br>
+        ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}${ME.progress ? ` · ${ME.progress.total} iş günü` : ""}<br>
+        Sorumlu mühendis: ${a.muh_ad || "—"} (${a.muh_unvan || "—"})<br>
+        Ücret: ${a.ucret === "evet" ? "ödenecek" : a.ucret === "hayir" ? "ödenmeyecek" : "belirsiz"}
+      </div></details>`;
+  }
+
+  // Bildirim geçmişi: bildirimler bir kez görünüp kaybolmaz.
+  if (ME.notifications.length) {
+    h += `<details style="margin-top:10px"><summary style="cursor:pointer;color:#6b7280;font-size:14px">Bildirimler (${ME.notifications.length})</summary>
+      ${ME.notifications.map(n => `<div class="notif" style="opacity:${n.seen ? ".65" : "1"}">
+        ${n.text} <span class="muted">· ${n.created_at.slice(0, 10)}</span></div>`).join("")}</details>`;
+  }
+
   // Bağlamsal yardım: her ekranın altında, bulunduğun aşamayla ilgili SSS'ye götürür.
   const TOPIC = { noplace: "staj yeri", draft: "başvuru", review: "başvuru", fix: "belge",
     sgk: "SGK", obs: "OBS", ready: "staj", during: "staj defteri", deliver: "defter teslim",
@@ -253,9 +274,9 @@ async function wizard(msg) {
     <h1>Bilgilerini kontrol et.</h1>
     <p class="sub">Bunlar öğrenci kayıtlarından geldi — yazmana gerek yok.</p>
     <div class="box info">${ME.user.name} · ${ME.user.no}<br>Bilgisayar Mühendisliği · ${a.staj_no}. staj</div>
-    <label>Telefon numaran</label><input id="telefon" type="text" placeholder="05xx xxx xx xx" value="${a.telefon || ""}">
-    <p class="hint">Komisyonun sana ulaşması gerekirse kullanılır.</p>
-    <button class="big" onclick="wSave(2,{telefon:$('telefon').value})">Devam et</button>${backB}`;
+    <label>Telefon numaran</label><input id="telefon" type="tel" inputmode="numeric" placeholder="05xx xxx xx xx" value="${a.telefon || ""}">
+    <p class="hint" id="telHint">Komisyonun sana ulaşması gerekirse kullanılır.</p>
+    <button class="big" onclick="wPhone()">Devam et</button>${backB}`;
 
   if (n === 2) body = `
     <h1>Stajını ne zaman yapacaksın?</h1>
@@ -327,7 +348,7 @@ async function wizard(msg) {
     <div class="box info">
       ${a.tur === "donem" ? "Dönem içi staj" : "Yaz stajı"} · ${a.kurum_adi || "—"}<br>
       ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}<br>
-      Sorumlu: ${a.muh_ad || "—"}, ${a.muh_unvan || "—"}<br>
+      Sorumlu: ${a.muh_ad || "—"}, ${a.muh_unvan === "Bilmiyorum" ? '⚠ unvanı öğrenip <button class="link" onclick="wStep(4)">Adım 4\'te güncelle</button>' : (a.muh_unvan || "—")}<br>
       Kabul belgesi ${ME.documents.some(d => d.kind === "kabul") ? "✓ yüklendi" : "⚠ yüklenmedi"}
       <p style="margin-top:8px"><button class="link" onclick="wStep(1)">Bir şeyi değiştir</button></p>
     </div>
@@ -336,6 +357,16 @@ async function wizard(msg) {
 
   el(head + body);
   if (n === 5 && a.start_date) (a.end_date ? dateCheck() : onDatesInput());
+}
+
+// Telefon: sert hata yerine yumuşak doğrulama — rakam dışını temizle, uzunluğa bak.
+function wPhone() {
+  const raw = $("telefon").value.replace(/\D/g, "");
+  if (raw.length < 10 || raw.length > 11 || !raw.startsWith("0")) {
+    $("telHint").innerHTML = '<span style="color:#b45309">Numara eksik görünüyor — 0 ile başlayan 11 haneli numaranı yaz (ör. 0555 123 45 67).</span>';
+    return;
+  }
+  wSave(2, { telefon: raw.replace(/(\d{4})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4") });
 }
 
 async function wSave(nextStep, fields) {
