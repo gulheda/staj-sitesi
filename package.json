@@ -21,7 +21,6 @@
   },
   "homepage": "https://github.com/gulheda/staj-sitesi#readme",
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
     "express": "^5.2.1",
     "multer": "^2.2.0"
   }
