@@ -26,6 +26,18 @@ npm start        # http://localhost:3000
 | Zeynep Şahin | `20251003333` | `zeynep1234` | stajı bitti, defter teslim aşamasında |
 | Komisyon | `komisyon` | `komisyon123` | yönetici paneli (`/admin.html`) |
 
+Ayrıca **18 öğrencilik tam veri seti** yüklüdür (`20221001001` … `20221001018`,
+hepsinin şifresi `ogrenci123`) — başvurusu incelemede, düzeltmede, stajı süren,
+defteri değerlendirmede ve kabul edilmiş öğrencilerle gerçekçi bir dönem
+görüntüsü. Komisyon paneli bu veriyle dolu gelir.
+
+**Gerçek belgeler** `public/belgeler/` altındadır ve sistemden indirilir:
+EK-1 kabul formu, EK-2 ücret/İşsizlik Fonu formu, staj zorunluluk belgesi,
+staj yönergesi, defter sayfaları şablonu. Yönerge ve formlardaki gerçek
+kurallar (20 gün önce başvuru, cumartesi komisyon onayı, pazar sayılmaz,
+el yazısı defter, kamu kurumunda EK-2 muafiyeti, yurt dışında SGK öğrencide)
+sisteme işlenmiştir.
+
 **Teknik yapı:** Node.js + Express, SQLite (better-sqlite3), dosya yükleme
 tür/boyut denetimli (multer). Öğrencinin aşaması (`deriveStage`) veriden
 türetilir — arayüz yalnızca sunucunun bildirdiği aşamayı çizer. Pilot

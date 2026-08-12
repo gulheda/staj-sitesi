@@ -245,7 +245,10 @@ function acceptDoc() {
       • Üst kısmını sen dolduracaksın<br>
       • Kurum yetkilisi <b>imzalayacak</b> ve <b>kaşeleyecek</b><br>
       • İkisi de yoksa komisyon belgeyi geri gönderir</div>
-    <button class="quiet" onclick="alert('Pilot sürümde form dosyaları bölüm sayfasından indirilir; canlıda buradan inecek.')">Belgeyi indir</button>
+    <a class="quiet" style="display:block;text-align:center;text-decoration:none"
+       href="/belgeler/ek1-zorunlu-staj-kabul-formu-yaz.pdf" download>Belgeyi indir (PDF)</a>
+    ${tur === "donem" ? '<p class="hint">Not: Dönem içi sürüm (EK-1A) yakında eklenecek; şimdilik yaz formu üzerinden ilerleyebilirsin.</p>' : ""}
+    <div class="box warn">⏰ <b>Önemli:</b> İmzalı formun staj başlangıcından en az <b>20 gün önce</b> teslim edilmesi gerekiyor — tarih seçerken sistem bunu senin için kontrol edecek.</div>
     <button class="big" onclick="startApplication('${tur}')">İmzalattım, başvuruya geç →</button>`);
 }
 
@@ -289,7 +292,12 @@ async function wizard(msg) {
     <label>Kurumun adı</label><input id="kadi" value="${a.kurum_adi || ""}" placeholder="Örnek Yazılım A.Ş.">
     <label>Şehir</label><input id="ksehir" value="${a.kurum_sehir || ""}" placeholder="Balıkesir">
     <label>Ne iş yapıyor?</label><input id="kfaal" value="${a.kurum_faaliyet || ""}" placeholder="Yazılım geliştirme">
-    <button class="big" onclick="wSave(4,{kurum_adi:$('kadi').value,kurum_sehir:$('ksehir').value,kurum_faaliyet:$('kfaal').value})">Devam et</button>${backB}`;
+    <label class="check" style="border:0;margin-top:14px"><input type="checkbox" id="kyurt" ${a.yurtdisi ? "checked" : ""}
+      onchange="$('yurtInfo').style.display=this.checked?'block':'none'"> Kurum yurt dışında</label>
+    <div id="yurtInfo" class="box warn" style="display:${a.yurtdisi ? "block" : "none"}">
+      Yurt dışı stajında sigortanı üniversite yapamaz — <b>SGK'yı kendi imkânlarınla yaptırman gerekir.</b>
+      Komisyon başvurunu buna göre değerlendirecek.</div>
+    <button class="big" onclick="wSave(4,{kurum_adi:$('kadi').value,kurum_sehir:$('ksehir').value,kurum_faaliyet:$('kfaal').value,yurtdisi:$('kyurt').checked?1:0})">Devam et</button>${backB}`;
 
   if (n === 4) body = `
     <h1>Senden sorumlu mühendis kim?</h1>
@@ -320,15 +328,20 @@ async function wizard(msg) {
         onchange="onDatesInput()"> ${t}</label>`).join("")}
     </div>
     <p class="hint">Ders programınla çakışmayan günleri işaretli bırak.</p>` : ""}
+    <label class="check" style="border:0;margin-top:14px"><input type="checkbox" id="cmt" ${a.cumartesi ? "checked" : ""}
+      onchange="onDatesInput(true)"> Cumartesileri de çalışacağım
+      <span class="muted">(komisyon onayına tabidir; pazar günleri hiçbir koşulda sayılmaz)</span></label>
     <label>Başlangıç</label>
-    <input id="d1" type="date" value="${a.start_date || ""}" min="${ME.today}" onchange="onDatesInput()">
+    <input id="d1" type="date" value="${a.start_date || ""}" min="${minStartISO()}" onchange="onDatesInput()">
+    <p class="hint">Kabul formu staj başlangıcından en az <b>20 gün önce</b> teslim edilmeli — bu yüzden en erken ${fmtDate(minStartISO())} seçebilirsin.</p>
     <label>Bitiş <span class="muted">(boş bırakırsan biz hesaplarız)</span></label>
     <input id="d2" type="date" value="${a.end_date || ""}" onchange="dateCheck()">
     <div id="dateRes"></div>
     <label>İşletme staj ücreti ödeyecek mi?</label>
     <select id="ucret">${[["hayir", "Hayır"], ["evet", "Evet"], ["bilmiyorum", "Bilmiyorum"]]
       .map(([v, t]) => `<option value="${v}" ${a.ucret === v ? "selected" : ""}>${t}</option>`).join("")}</select>
-    <p class="hint">“Evet” dersen ücret katkısı belgesi (EK-2) sonraki adımda listene eklenir.</p>
+    <p class="hint">“Evet” dersen ücret katkısı formu (EK-2) sonraki adımda listene eklenir.
+    Kamu kurumunda staj yapıyorsan EK-2 gerekmez.</p>
     <button class="big" id="d5next" onclick="wSaveDates()">Devam et</button>${backB}`;
   }
 
@@ -382,17 +395,27 @@ async function wStep(n) {
 
 let lastDateCheck = null;
 const pickedDays = () => [...document.querySelectorAll(".wday:checked")].map(i => +i.value);
+const minStartISO = () => new Date(new Date(ME.today).getTime() + 20 * 86400000).toISOString().slice(0, 10);
 
-// Başlangıç (veya çalışma günleri) değişti: bitiş boşsa sistem hesaplayıp doldurur.
-async function onDatesInput() {
+// Başlangıç, çalışma günleri veya cumartesi tercihi değişti:
+// bitiş boşsa (veya yeniden hesap istendiyse) sistem hesaplayıp doldurur.
+async function onDatesInput(recalc) {
   const s = $("d1").value;
   if (!s) return;
-  const payload = { start: s, tur: wizardApp.tur, days: pickedDays() };
+  if (recalc) $("d2").value = "";
+  const payload = { start: s, tur: wizardApp.tur, days: pickedDays(), saturday: $("cmt")?.checked };
   if (!$("d2").value) {
     const r = await api("/application/check-dates", { method: "POST", json: payload });
     if (r.suggestion?.auto && r.suggestion.value) {
       $("d2").value = r.suggestion.value;
       await dateCheck(true);
+      return;
+    }
+    if (r.problems.length) {
+      lastDateCheck = r;
+      $("dateRes").innerHTML = `<div class="box warn">${r.problems.join("<br>")}${r.suggestion?.value ? `<br><br>
+        <button class="big" style="background:#b45309" onclick="applySuggestion()">Başlangıcı ${fmtDate(r.suggestion.value)} yap (önerilen)</button>` : ""}</div>`;
+      $("d5next").disabled = true;
       return;
     }
   }
@@ -403,7 +426,7 @@ async function dateCheck(autoFilled) {
   const s = $("d1").value, e = $("d2").value;
   if (!s || !e) return;
   lastDateCheck = await api("/application/check-dates",
-    { method: "POST", json: { start: s, end: e, tur: wizardApp.tur, days: pickedDays() } });
+    { method: "POST", json: { start: s, end: e, tur: wizardApp.tur, days: pickedDays(), saturday: $("cmt")?.checked } });
   const r = lastDateCheck;
   if (r.ok) {
     const b = r.breakdown || {};
@@ -431,6 +454,7 @@ function applySuggestion() {
 async function wSaveDates() {
   if (!lastDateCheck || !lastDateCheck.ok) { onDatesInput(); return; }
   wSave(6, { start_date: $("d1").value, end_date: $("d2").value, ucret: $("ucret").value,
+    cumartesi: $("cmt")?.checked ? 1 : 0,
     calisma_gunleri: wizardApp.tur === "donem" ? pickedDays().join(",") : null });
 }
 
@@ -510,6 +534,7 @@ function deliverScreen() {
   nav("home");
   const total = ME.progress?.total || 20;
   const items = [`Her staj günü için ayrı sayfa hazırladım (${total} iş günü = ${total} sayfa)`,
+    "Sayfaları mürekkepli kalemle, el yazısıyla doldurdum (bilgisayarda yazılmaz)",
     "Bütün sayfaları işyeri sorumlusu imzaladı", "Gerekli kaşeler sayfalarda var",
     "Kapak sayfasını ekledim", "Vlog bağlantısı ve QR kodu son sayfada",
     "PDF net okunuyor (bulanık/karanlık sayfa yok)", "Dosya boyutu 10 MB'ın altında"];
@@ -524,7 +549,7 @@ function deliverScreen() {
         onchange="api('/sicil',{method:'POST',json:{delivered:this.checked}})"> Zarfı teslim ettim</label></div>`);
 }
 function chk() {
-  const boxes = [...document.querySelectorAll("main .check input")].slice(0, 7);
+  const boxes = [...document.querySelectorAll("main .check input")].slice(0, 8);
   const all = boxes.every(b => b.checked);
   $("upBtn").disabled = !all;
   $("upWhy").textContent = all ? "Hazırsın — gönderebilirsin." : "Listeyi tamamlayınca buton açılır.";
@@ -543,7 +568,7 @@ const belgeKart = (b) => `
       .map(([k, v]) => `<tr><td style="padding:5px 10px 5px 0;font-weight:600;white-space:nowrap;vertical-align:top">${k}</td>
         <td style="padding:5px 0">${v}</td></tr>`).join("")}
   </table>
-  ${b.ornek ? `<button class="link" style="font-size:14px" onclick="alert('Örnek belgeler canlı sürümde buraya eklenecek.')">Örnek doldurulmuş belgeyi gör</button>` : ""}
+  ${b.indir ? `<a class="link" style="font-size:14px" href="${b.indir}" download>Belgeyi indir</a>` : ""}
   </div></div>`;
 
 const BELGELER = {
@@ -552,26 +577,35 @@ const BELGELER = {
       nedir: "Staj yapacağın işletmenin seni stajyer olarak kabul ettiğini gösteren belge.",
       neden: "Komisyon staj yerinin uygunluğunu bununla değerlendirir; sigorta girişin buna göre yapılır.",
       doldurur: "Üst kısmı sen, işletme bilgilerini kurum.", imzalar: "İşletme yetkilisi.",
-      kase: "<b>Evet</b> — işletme kaşesi zorunlu.", nezaman: "Başvurudan önce (başvuruda yükleyeceksin).",
-      nereye: "Bu sisteme yüklenir; elden teslim gerekmez.", ornek: true },
+      kase: "<b>Evet</b> — işletme kaşesi zorunlu.",
+      nezaman: "Staj başlangıcından <b>en az 20 gün önce</b> (başvuruda yükleyeceksin).",
+      nereye: "Bu sisteme yüklenir; elden teslim gerekmez.",
+      indir: "/belgeler/ek1-zorunlu-staj-kabul-formu-yaz.pdf" },
     { icon: "📄", ad: "Ücret katkısı bilgi formu", resmi: "EK-2",
-      nedir: "İşletme sana staj ücreti ödeyecekse devlet katkısı için gereken form.",
-      neden: "Ücret ödemesinin İşsizlik Fonu katkısıyla desteklenmesi için gerekir.",
-      doldurur: "İşletme — bütün alanlar eksiksiz.", imzalar: "İşletme yetkilisi.", kase: "Evet.",
+      nedir: "İşletme sana staj ücreti ödeyecekse devlet katkısı için gereken form. <b>Kamu kurumlarında staj yapanlar için gerekmez.</b>",
+      neden: "Ödenen ücretin bir kısmı İşsizlik Fonu'ndan devlet katkısı olarak karşılanır (20'den az personelli işletmede 2/3'ü, 20 ve üzerinde 1/3'ü).",
+      doldurur: "Öğrenci bilgilerini sen, işletme bilgilerini kurum — <b>bilgisayar ortamında</b> doldurulur.", imzalar: "Sen ve işletme yetkilisi.", kase: "Evet.",
       nezaman: "Yalnızca 'ücret ödenecek' dediysen; başvuruyla birlikte.",
-      nereye: "Bu sisteme yüklenir.", ornek: true },
-    { icon: "📘", ad: "Staj yönergesi ve el kitabı",
+      nereye: "Bu sisteme yüklenir.", indir: "/belgeler/ek2-ucret-issizlik-fonu-formu.pdf" },
+    { icon: "📄", ad: "Staj zorunluluk belgesi",
+      nedir: "Stajın mezuniyet için zorunlu olduğunu ve SGK primlerinin Fakültece yatırılacağını kuruma bildiren resmî yazı.",
+      neden: "Bazı işletmeler stajyer kabul etmek için ister.",
+      doldurur: "Hazırdır — doldurmana gerek yok, indirip kuruma verirsin.",
+      nereye: "Staj yapacağın kuruma.", indir: "/belgeler/staj-zorunluluk-belgesi.pdf" },
+    { icon: "📘", ad: "Staj yönergesi",
       nedir: "Stajın bütün resmî kuralları. Sistemi kullanıyorsan çoğunu okumana gerek kalmaz — kurallar senin yerine uygulanır.",
-      nezaman: "Merak edersen her zaman; zorunlu adım değildir." },
+      nezaman: "Merak edersen her zaman; zorunlu adım değildir.", indir: "/belgeler/staj-yonergesi.pdf" },
   ],
   "Staj sırasında kullanacakların": [
     { icon: "📄", ad: "Günlük staj defteri sayfası",
       nedir: "Her staj günü için o gün ne yaptığını anlattığın sayfa.",
       neden: "Komisyon stajını bu sayfalar üzerinden değerlendirir.",
-      doldurur: "Sen — her iş günü için bir sayfa.", imzalar: "İşyerindeki sorumlu mühendisin.",
+      doldurur: "Sen — her iş günü için bir sayfa, <b>mürekkepli kalemle el yazısıyla</b> (bilgisayarda yazılmaz).",
+      imzalar: "Her sayfayı işyeri yetkilisi onaylar.",
       kase: "Evet, sayfalarda işyeri kaşesi gerekir.",
       nezaman: "Staj süresince <b>her gün</b>. Son güne bırakma — en çok yapılan hata bu.",
-      nereye: "Staj bitince hepsi tek PDF olarak bu sisteme yüklenir.", ornek: true },
+      nereye: "Staj bitince hepsi tek PDF olarak bu sisteme yüklenir.",
+      indir: "/belgeler/staj-defteri-sayfalari.docx" },
     { icon: "📄", ad: "Staj defteri kapağı",
       nedir: "Ad-soyad, kurum ve tarih bilgilerini taşıyan ilk sayfa.",
       doldurur: "Sen.", nezaman: "Defteri birleştirirken en başa eklenir.", nereye: "Defter PDF'inin ilk sayfası olur." },

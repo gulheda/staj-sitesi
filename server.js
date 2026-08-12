@@ -6,11 +6,16 @@ const fs = require("fs");
 const { db, hash, verify, notify } = require("./lib/db");
 const { checkDates, countWorkdays, trDate } = require("./lib/dates");
 
-// Dönem içi stajda öğrencinin seçtiği günler ("1,3,5") hesaba katılır.
-const allowedDaysOf = (appRow) =>
-  appRow?.tur === "donem" && appRow.calisma_gunleri
+// Dönem içi stajda öğrencinin seçtiği günler ("1,3,5") ve cumartesi
+// tercihi (komisyon onayına tabi) hesaba katılır.
+const dateOptsOf = (appRow) => ({
+  allowedDays: appRow?.tur === "donem" && appRow.calisma_gunleri
     ? appRow.calisma_gunleri.split(",").map(Number).filter(n => n >= 1 && n <= 5)
-    : null;
+    : null,
+  saturday: !!appRow?.cumartesi,
+});
+// EK-1 notu: kabul formu staj başlangıcından 20 gün önce teslim edilir.
+const minStartDate = () => new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -124,10 +129,10 @@ app.get("/api/me", auth(), (req, res) => {
   // İş günü ilerlemesi sunucuda hesaplanır: arayüz asla hesap yapmaz.
   let progress = null;
   if (appRow && appRow.start_date && appRow.end_date) {
-    const ad = allowedDaysOf(appRow);
-    progress = { total: countWorkdays(appRow.start_date, appRow.end_date, ad) };
+    const o = dateOptsOf(appRow);
+    progress = { total: countWorkdays(appRow.start_date, appRow.end_date, o) };
     if (today() >= appRow.start_date)
-      progress.done = countWorkdays(appRow.start_date, today() <= appRow.end_date ? today() : appRow.end_date, ad);
+      progress.done = countWorkdays(appRow.start_date, today() <= appRow.end_date ? today() : appRow.end_date, o);
   }
   res.json({
     user: { name: req.user.name, no: req.user.ogrenci_no, role: req.user.role },
@@ -159,7 +164,7 @@ app.patch("/api/application", auth(), (req, res) => {
   if (!appRow || appRow.status !== "draft")
     return res.status(400).json({ error: "Düzenlenebilir bir taslak başvurun yok." });
   const allowed = ["wizard_step", "tur", "telefon", "kurum_adi", "kurum_sehir", "kurum_faaliyet",
-    "muh_ad", "muh_unvan", "start_date", "end_date", "ucret", "calisma_gunleri"];
+    "muh_ad", "muh_unvan", "start_date", "end_date", "ucret", "calisma_gunleri", "cumartesi", "yurtdisi"];
   const sets = [], vals = [];
   for (const k of allowed) if (k in req.body) { sets.push(`${k}=?`); vals.push(req.body[k]); }
   if (sets.length) {
@@ -173,7 +178,8 @@ app.post("/api/application/check-dates", auth(), (req, res) => {
   const days = Array.isArray(req.body.days) && req.body.days.length
     ? req.body.days.map(Number).filter(n => n >= 1 && n <= 5) : null;
   const allowedDays = req.body.tur === "donem" ? (days || []) : null;
-  res.json(checkDates(req.body.start, req.body.end, { allowedDays }));
+  res.json(checkDates(req.body.start, req.body.end,
+    { allowedDays, saturday: !!req.body.saturday, minStart: minStartDate() }));
 });
 
 app.post("/api/application/submit", auth(), (req, res) => {
@@ -185,9 +191,10 @@ app.post("/api/application/submit", auth(), (req, res) => {
   if (!appRow.muh_ad) missing.push("sorumlu mühendis");
   if (appRow.muh_unvan === "Bilmiyorum")
     return res.status(400).json({ error: "Sorumlu mühendisin unvanı henüz 'Bilmiyorum' olarak seçili. Kurumdan öğrenip Adım 4'te güncelledikten sonra gönderebilirsin — başvurun taslak olarak saklanıyor, acele etme." });
-  if (appRow.tur === "donem" && (allowedDaysOf(appRow) || []).length < 3)
+  if (appRow.tur === "donem" && (dateOptsOf(appRow).allowedDays || []).length < 3)
     missing.push("çalışma günleri (haftada en az 3)");
-  const dateCheck = checkDates(appRow.start_date, appRow.end_date, { allowedDays: allowedDaysOf(appRow) });
+  const dateCheck = checkDates(appRow.start_date, appRow.end_date,
+    { ...dateOptsOf(appRow), minStart: minStartDate() });
   if (!dateCheck.ok) missing.push("geçerli staj tarihleri");
   const hasKabul = db.prepare(
     "SELECT COUNT(*) c FROM documents WHERE application_id=? AND kind='kabul'").get(appRow.id).c > 0;
@@ -289,7 +296,7 @@ app.get("/api/admin/queue", auth("admin"), (req, res) => {
   for (const a of apps) {
     a.documents = db.prepare("SELECT * FROM documents WHERE application_id=? ORDER BY id DESC").all(a.id);
     a.workdays = a.start_date && a.end_date
-      ? countWorkdays(a.start_date, a.end_date, allowedDaysOf(a)) : null;
+      ? countWorkdays(a.start_date, a.end_date, dateOptsOf(a)) : null;
   }
   const questions = db.prepare(`
     SELECT q.*, u.name, u.ogrenci_no FROM questions q JOIN users u ON u.id=q.user_id
