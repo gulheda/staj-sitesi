@@ -1,0 +1,486 @@
+<title>Staj Portalı UX Tasarımı</title>
+<style>
+  :root {
+    --paper: #f6f7f9;
+    --card: #ffffff;
+    --ink: #1c2430;
+    --muted: #5b6572;
+    --line: #dde1e7;
+    --accent: #1d4ed8;
+    --accent-soft: #e8eefc;
+    --good: #15803d;
+    --good-soft: #e6f4ea;
+    --warn: #b45309;
+    --warn-soft: #fdf3e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14181f;
+      --card: #1c222b;
+      --ink: #e8ebef;
+      --muted: #9aa4b1;
+      --line: #323a45;
+      --accent: #7ba3f7;
+      --accent-soft: #23304a;
+      --good: #5cb87a;
+      --good-soft: #1f3327;
+      --warn: #e0a35c;
+      --warn-soft: #3a2e1c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14181f;
+    --card: #1c222b;
+    --ink: #e8ebef;
+    --muted: #9aa4b1;
+    --line: #323a45;
+    --accent: #7ba3f7;
+    --accent-soft: #23304a;
+    --good: #5cb87a;
+    --good-soft: #1f3327;
+    --warn: #e0a35c;
+    --warn-soft: #3a2e1c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink);
+         font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+  .eyebrow { font: 600 12px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .14em;
+             text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 40px; line-height: 1.12; letter-spacing: -.02em; margin: 14px 0 12px; text-wrap: balance; }
+  .lede { font-size: 19px; color: var(--muted); max-width: 60ch; }
+  h2 { font-size: 25px; letter-spacing: -.015em; margin: 0 0 6px; text-wrap: balance; }
+  h3 { font-size: 17px; margin: 0 0 6px; }
+  section { margin-top: 64px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--line);
+              padding-bottom: 12px; margin-bottom: 22px; }
+  .sec-head .no { font: 700 14px ui-monospace, Menlo, monospace; color: var(--accent); }
+  p + p { margin-top: 10px; }
+  .note { color: var(--muted); font-size: 14.5px; }
+  a { color: var(--accent); }
+  .grid { display: grid; gap: 14px; }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .card .who { font-weight: 700; }
+  .card .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--accent);
+               background: var(--accent-soft); border-radius: 99px; padding: 2px 10px; margin-bottom: 8px; }
+  .card ul { padding-left: 18px; font-size: 14.5px; color: var(--muted); }
+  .card li { margin: 4px 0; }
+  .quote { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; font-style: italic;
+           color: var(--ink); margin: 10px 0 2px; font-size: 15px; }
+  .pillar { border-top: 3px solid var(--accent); }
+  .pillar p { font-size: 14.5px; color: var(--muted); }
+  /* yolculuk haritası */
+  .jwrap { overflow-x: auto; padding-bottom: 8px; }
+  .journey { display: grid; grid-auto-flow: column; grid-auto-columns: 168px; gap: 10px; }
+  .jcard { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 13px;
+           display: flex; flex-direction: column; gap: 8px; }
+  .jcard .step { font: 700 11px ui-monospace, Menlo, monospace; color: var(--muted); }
+  .jcard .name { font-weight: 700; font-size: 14px; line-height: 1.3; }
+  .jcard .q { font-size: 12.5px; color: var(--muted); font-style: italic; min-height: 48px; }
+  .jcard .sys { font-size: 12.5px; background: var(--accent-soft); border-radius: 7px; padding: 7px 9px; margin-top: auto; }
+  .jcard.owner-c .sys { background: var(--good-soft); }
+  .mood { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .mood.anx { color: var(--warn); } .mood.calm { color: var(--good); }
+  /* tablolar */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14.5px; background: var(--card);
+         border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .tbl th { text-align: left; font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .tbl td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl .cell-strong { font-weight: 600; white-space: nowrap; }
+  .tblwrap { overflow-x: auto; }
+  .chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 2px 8px; }
+  .chip.ok { color: var(--good); background: var(--good-soft); }
+  .chip.at { color: var(--warn); background: var(--warn-soft); }
+  figure { margin: 22px 0 8px; }
+  figure svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  figcaption { font-size: 13.5px; color: var(--muted); text-align: center; margin-top: 10px; max-width: 62ch;
+               margin-left: auto; margin-right: auto; }
+  .diagram { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px;
+             overflow-x: auto; }
+  .callout { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--card);
+             border-radius: 10px; padding: 14px 18px; margin: 18px 0; font-size: 15px; }
+  .callout.warn { border-left-color: var(--warn); }
+  footer { margin-top: 72px; border-top: 1px solid var(--line); padding-top: 18px; font-size: 13.5px; color: var(--muted); }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">BAÜN Bilgisayar Mühendisliği · UX Tasarım Dokümanı</div>
+  <h1>Staj Portalı UX Tasarımı</h1>
+  <p class="lede">Staj sürecini hiç bilmeyen bir öğrencinin bile kimseye soru sormadan
+  tamamlayabileceği self-service staj portalının kullanıcı deneyimi tasarımı.
+  Bu doküman UI değil, <b>deneyim kararlarını</b> anlatır: kim, hangi anda, neyi görür ve neden.</p>
+</header>
+
+<section id="problem">
+  <div class="sec-head"><span class="no">01</span><h2>Tasarım problemi ve başarı ölçüsü</h2></div>
+  <p>Bugün staj süreci dört ayrı yerde yaşıyor: başvuru Google Forms'ta, sorular ayrı bir sitede,
+  defter Teams'te, sicil fişi elden. Öğrenci hangi belgenin ne olduğunu, sürecin neresinde olduğunu
+  bilmiyor ve cevabı hocaya soruyor. Sorun öğrencinin bilgisizliği değil, <b>bilginin dağınıklığı</b>.</p>
+  <div class="callout">
+    <b>Tek başarı ölçüsü:</b> komisyona sorulan soru sayısı.
+    “Başvurum onaylandı mı?”, “Kaşe mi mühür mü?”, “Defteri nereye teslim edeceğim?” sorularının
+    her biri arayüzün cevapsız bıraktığı bir noktadır. Hedef, bu sayıyı sıfıra yaklaştırmak —
+    sistem hata vermeden çalışsa bile sorular azalmıyorsa tasarım başarısızdır.
+  </div>
+  <p>Bunun için tek bir omurga ilke benimsendi: <b>öğrenciye seçenek sunma, durumunu tespit et ve
+  yalnız o anki tek doğru işlemi göster.</b> Her ekran üç soruya cevap vermek zorundadır:
+  <i>Neredeyim? · Şimdi ne yapmalıyım? · Yaptıktan sonra ne olacak?</i>
+  Üçünden biri cevapsızsa ekran hatalıdır.</p>
+</section>
+
+<section id="personalar">
+  <div class="sec-head"><span class="no">02</span><h2>Kimin için tasarlıyoruz</h2></div>
+  <p>Tasarım her zaman en kırılgan kullanıcıya göre yapılır; o rahatsa diğerleri zaten rahattır.</p>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card">
+      <span class="tag">Ana persona</span>
+      <p class="who">Deniz — ilk stajına başlayan 3. sınıf</p>
+      <div class="quote">“EK-1 ne? Kaşe mi mühür mü? Yanlış yaparsam stajım yanar mı?”</div>
+      <ul>
+        <li>Yönetmeliği hiç okumadı, okusa da bürokratik dili çözemez</li>
+        <li>Uzun metin okumaz; takılınca hocaya mesaj atar</li>
+        <li>İhtiyacı: her an tek bir net talimat</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag">İkincil</span>
+      <p class="who">Mert — başvurusu süreçte</p>
+      <div class="quote">“Hocam 5 gün önce başvurmuştum, durumum nedir?”</div>
+      <ul>
+        <li>Belgesinde eksik olduğundan habersiz</li>
+        <li>İhtiyacı: girdiği an durumunu ve üzerine düşeni görmek</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag">İkincil</span>
+      <p class="who">Zeynep — stajı bitti</p>
+      <div class="quote">“Defteri nasıl hazırlayıp nereye teslim edeceğim?”</div>
+      <ul>
+        <li>Teslim tarihini kaçırmaktan korkuyor</li>
+        <li>İhtiyacı: teslimin adım adım, eksiksiz yürütülmesi</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note" style="margin-top:12px">Dördüncü kullanıcı komisyondur (Hüseyin Hoca): bekleyen işleri
+  öncelik sırasıyla görmek, tek tıkla onay/düzeltme vermek ve düzeltme açıklamasını hazır şablonlardan
+  seçmek ister — şablonlar, öğrenciye giden metnin her zaman anlaşılır olmasını garanti eder.</p>
+</section>
+
+<section id="ilkeler">
+  <div class="sec-head"><span class="no">03</span><h2>Beş tasarım ilkesi</h2></div>
+  <div class="grid g3">
+    <div class="card pillar"><h3>1 · Durum odaklı ekran</h3>
+      <p>Menü yok, karar yok: sistem öğrencinin aşamasını bilir, yalnız o anki işlemi gösterir.
+      Staj yeri olmayana form, başvurusu onaylanana “yeniden başvur” gösterilmez.</p></div>
+    <div class="card pillar"><h3>2 · Hatayı imkânsızlaştır</h3>
+      <p>Hata mesajı son çaredir. Tatil günü takvimde seçilemez; yanlış unvan listede yoktur;
+      eksik kontrol listesiyle “yükle” butonu açılmaz.</p></div>
+    <div class="card pillar"><h3>3 · Bilgiyi kademeli aç</h3>
+      <p>İlk girişte tek soru, formda ekran başına tek görev, belge ayrıntısı isteyene.
+      12 aşamalık harita hiçbir zaman topluca gösterilmez.</p></div>
+    <div class="card pillar"><h3>4 · Bürokratik dil yasak</h3>
+      <p>Önce günlük dil, altında küçük puntoyla resmî ad:
+      “İşletmenin imzaladığı kabul belgesi” <span style="white-space:nowrap">(EK-1)</span>.
+      Bütün metinler “sen” diliyle, tek okumada.</p></div>
+    <div class="card pillar"><h3>5 · Korkusuz geri dönüş</h3>
+      <p>Her adım otomatik kaydedilir; geri dönmek veri kaybettirmez. Geri alınamaz işlemden
+      önce ne olacağı açıkça söylenir.</p></div>
+    <div class="card pillar"><h3>Ölçüm: yardım = sinyal</h3>
+      <p>Hangi ekranda SSS'ye kaçış yoğunsa o ekran hatalıdır. Yardım sistemi aynı zamanda
+      tasarımın hata dedektörüdür.</p></div>
+  </div>
+</section>
+
+<section id="yolculuk">
+  <div class="sec-head"><span class="no">04</span><h2>Öğrenci yolculuk haritası</h2></div>
+  <p>12 aşamalık uçtan uca yolculuk. Her kartta öğrencinin o anki gerçek sorusu (araştırmadan ve
+  komisyona gelen sorulardan) ve sistemin verdiği cevap var. Öğrenci bu haritanın tamamını hiçbir
+  zaman görmez — her an yalnız kendi kartını yaşar. <span class="note">(yana kaydırın →)</span></p>
+  <div class="jwrap"><div class="journey">
+    <div class="jcard"><span class="step">1</span><span class="name">Staj yeri bulma</span>
+      <span class="mood anx">endişeli</span>
+      <p class="q">“Nerede staj yapabilirim? Şirket uygun mu?”</p>
+      <p class="sys">İşyeri şartı tek cümle + kuruma sorulacak hazır soru. Form kilitli.</p></div>
+    <div class="jcard"><span class="step">2</span><span class="name">Belge hazırlama</span>
+      <span class="mood anx">kafası karışık</span>
+      <p class="q">“EK-1 ne? Kaşe mi mühür mü? Kim imzalar?”</p>
+      <p class="sys">Staj türüne göre tek doğru form + kim doldurur/imzalar kartı + örnek belge.</p></div>
+    <div class="jcard"><span class="step">3</span><span class="name">Başvuru</span>
+      <span class="mood anx">tedirgin</span>
+      <p class="q">“Kaç iş günü etti? Tarihleri doğru mu seçtim?”</p>
+      <p class="sys">7 adımlı sihirbaz; iş gününü sistem hesaplar, yanlışsa doğru tarihi önerir.</p></div>
+    <div class="jcard"><span class="step">4</span><span class="name">İnceleme</span>
+      <span class="mood anx">sabırsız</span>
+      <p class="q">“Başvurum ne durumda? Hocaya mı sorsam?”</p>
+      <p class="sys">“Başvurun inceleniyor — senden işlem beklenmiyor.” + değişince e-posta.</p></div>
+    <div class="jcard"><span class="step">5</span><span class="name">Onay / düzeltme</span>
+      <span class="mood calm">rahatlıyor</span>
+      <p class="q">“Eksik var mı? Neyi düzelteceğim?”</p>
+      <p class="sys">Ne + neden + nasıl formatlı açıklama, tek buton: “Belgeyi yeniden yükle”.</p></div>
+    <div class="jcard"><span class="step">6</span><span class="name">SGK kontrolü</span>
+      <span class="mood anx">bilmiyor</span>
+      <p class="q">“Sigortam yapıldı mı? Nereden bakılır?”</p>
+      <p class="sys">3 adımlı e-Devlet rehberi; “göremiyorum” butonu durumu komisyona iletir.</p></div>
+    <div class="jcard"><span class="step">7</span><span class="name">OBS kaydı</span>
+      <span class="mood calm">nötr</span>
+      <p class="q">“OBS'de bir şey mi seçmem gerekiyordu?”</p>
+      <p class="sys">Sırası gelince ana karta düşer; dersin tam adı + ekran görüntüsü.</p></div>
+    <div class="jcard"><span class="step">8</span><span class="name">Staj dönemi</span>
+      <span class="mood calm">yoğun</span>
+      <p class="q">“Defteri nasıl tutacağım? Vlog neydi?”</p>
+      <p class="sys">Gün sayacı + “her gün doldur, hafta sonunu bekleme” + vlog rehberi.</p></div>
+    <div class="jcard"><span class="step">9</span><span class="name">Defter hazırlama</span>
+      <span class="mood anx">telaşlı</span>
+      <p class="q">“Eksiğim var mı? Geri döner mi?”</p>
+      <p class="sys">Zorunlu kontrol listesi — tamamlanmadan yükleme açılmaz.</p></div>
+    <div class="jcard"><span class="step">10</span><span class="name">Teslim</span>
+      <span class="mood anx">kritik an</span>
+      <p class="q">“Sicil fişini de mi yükleyeceğim?”</p>
+      <p class="sys">“Fiş yüklenmez — fotoğraflı, kapalı zarfla sekreterliğe elden.” Ayrı adım olarak izlenir.</p></div>
+    <div class="jcard owner-c"><span class="step">11</span><span class="name">Değerlendirme</span>
+      <span class="mood calm">bekliyor</span>
+      <p class="q">“Sonuç ne zaman belli olur?”</p>
+      <p class="sys">“Senden işlem beklenmiyor” + sonuç bildirimi. (İş komisyonda.)</p></div>
+    <div class="jcard owner-c"><span class="step">12</span><span class="name">Tamamlandı</span>
+      <span class="mood calm">mutlu</span>
+      <p class="q">“Başka bir şey kaldı mı?”</p>
+      <p class="sys">“Stajın kabul edildi 🎉 Yapman gereken başka işlem yok.”</p></div>
+  </div></div>
+  <p class="note">Turuncu duygu etiketleri endişe anlarını gösterir: tasarımın en çok çalıştığı yerler
+  2, 3, 9 ve 10. aşamalardır — komisyona gelen soruların da yoğunlaştığı noktalar.</p>
+</section>
+
+<section id="anatomi">
+  <div class="sec-head"><span class="no">05</span><h2>Ana ekranın anatomisi</h2></div>
+  <p>“Stajım” ekranı bir panel değil, tek bir cevaptır. Yerleşim, öğrencinin doğal soru sırasını izler
+  ve her öğe üç sorudan birine hizmet eder; etmeyen öğe ekrana giremez.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 400" role="img" aria-label="Ana ekranın dört bölgesi: durum cümlesi, ilerleme çubuğu, tek işlem kartı ve yaklaşan tarih; her bölge öğrencinin bir sorusuna cevap verir.">
+      <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.4">
+        <rect x="30" y="20" width="380" height="360" rx="14"/>
+        <rect x="54" y="48" width="332" height="64" rx="8"/>
+        <rect x="54" y="128" width="332" height="34" rx="8"/>
+        <rect x="54" y="178" width="332" height="120" rx="8" style="stroke:var(--accent)" stroke-width="2.4"/>
+        <rect x="54" y="314" width="332" height="40" rx="8" stroke-dasharray="5 4"/>
+      </g>
+      <g font-family="system-ui, sans-serif" fill="currentColor">
+        <text x="70" y="74" font-size="15" font-weight="700">Başvurun onaylandı ✓</text>
+        <text x="70" y="96" font-size="12" opacity=".65">Stajın 8 gün sonra başlıyor.</text>
+        <text x="70" y="150" font-size="12" opacity=".65">▮▮▮▮▮▮▯▯▯▯▯▯  Adım 6/12 · SGK kontrolü</text>
+        <text x="70" y="204" font-size="11" opacity=".65" font-weight="700">ŞİMDİ YAPMAN GEREKEN</text>
+        <text x="70" y="226" font-size="13" font-weight="600">Sigorta girişini kontrol et</text>
+        <rect x="70" y="242" width="300" height="30" rx="7" fill="#1d4ed8" stroke="none"/>
+        <text x="220" y="262" font-size="13" fill="#ffffff" text-anchor="middle" font-weight="600">Nasıl bakacağımı göster</text>
+        <text x="220" y="290" font-size="11" opacity=".6" text-anchor="middle">Sonra: OBS'de staj dersini seçmek</text>
+        <text x="70" y="339" font-size="12" opacity=".65">3 Temmuz — SGK kontrolü için son gün</text>
+      </g>
+      <g font-family="system-ui, sans-serif" font-size="13" fill="currentColor">
+        <line x1="452" y1="80" x2="392" y2="80" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+        <text x="462" y="76" font-weight="700">“Neredeyim?”</text>
+        <text x="462" y="93" font-size="11.5" opacity=".65">durum cümlesi + ilerleme</text>
+        <line x1="452" y1="238" x2="392" y2="238" style="stroke:var(--accent)" stroke-width="1.6" marker-end="url(#ar)"/>
+        <text x="462" y="228" font-weight="700">“Ne yapmalıyım?”</text>
+        <text x="462" y="245" font-size="11.5" opacity=".65">tek işlem, tek buton —</text>
+        <text x="462" y="260" font-size="11.5" opacity=".65">rakip CTA yasak</text>
+        <line x1="452" y1="290" x2="392" y2="290" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+        <text x="462" y="286" font-weight="700">“Sonra ne olacak?”</text>
+        <text x="462" y="303" font-size="11.5" opacity=".65">butonun altında bir cümle</text>
+        <line x1="452" y1="334" x2="392" y2="334" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+        <text x="462" y="330" font-weight="700">“Ne zamana kadar?”</text>
+        <text x="462" y="347" font-size="11.5" opacity=".65">yalnız en yakın tarih</text>
+      </g>
+    </svg>
+    <figcaption>Ana ekranın dört bölgesi ve her birinin cevapladığı soru. Öğrencinin işi yoksa mavi
+    buton da yoktur — “senden işlem beklenmiyor” açıkça yazılır.</figcaption>
+  </figure>
+</section>
+
+<section id="hata">
+  <div class="sec-head"><span class="no">06</span><h2>Hata önleme stratejisi</h2></div>
+  <p>Komisyona gelen her gerçek soru üç savunma hattından geçirilir; soru ancak üçünden de
+  kaçarsa SSS'ye düşer. Hedef her zaman en üst hatta çözmektir.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 640 250" role="img" aria-label="Üç savunma hattı: hatayı imkânsızlaştır, cevabı yerinde göster, kontrol listesiyle yakala. Sorular yukarıdan aşağı süzülür, her hat bir kısmını eler.">
+      <defs><marker id="ar2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+      <g font-family="system-ui, sans-serif" fill="currentColor">
+        <text x="20" y="24" font-size="13" font-weight="700">Öğrencinin olası bütün soruları / hataları</text>
+        <line x1="320" y1="34" x2="320" y2="52" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar2)"/>
+        <rect x="60" y="56" width="520" height="44" rx="9" fill="#1d4ed8" stroke="none"/>
+        <text x="80" y="76" font-size="13.5" fill="#fff" font-weight="700">1 · İmkânsızlaştır</text>
+        <text x="80" y="92" font-size="11.5" fill="#fff" opacity=".85">unvan = kapalı liste · tatil günü seçilemez · tek doğru form otomatik</text>
+        <line x1="320" y1="104" x2="320" y2="122" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar2)"/>
+        <g fill="none" stroke="currentColor" stroke-width="1.4">
+          <rect x="105" y="126" width="430" height="44" rx="9"/>
+          <rect x="150" y="196" width="340" height="44" rx="9" stroke-dasharray="5 4"/>
+        </g>
+        <text x="125" y="146" font-size="13.5" font-weight="700">2 · Cevabı yerinde göster</text>
+        <text x="125" y="162" font-size="11.5" opacity=".65">“imzalı VE kaşeli olmalı” — yükleme alanının hemen üstünde</text>
+        <line x1="320" y1="174" x2="320" y2="192" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar2)"/>
+        <text x="170" y="216" font-size="13.5" font-weight="700">3 · Kontrol listesiyle yakala</text>
+        <text x="170" y="232" font-size="11.5" opacity=".65">liste tamamlanmadan “Defteri yükle” açılmaz</text>
+      </g>
+    </svg>
+    <figcaption>Her hat, soruların bir bölümünü eler; daralan kutular kalan soru hacmini temsil eder.
+    SSS ve “komisyona sor” yalnız bu huniden kaçanlar içindir.</figcaption>
+  </figure>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Gerçek soru</th><th>Savunma hattı</th><th>Tasarım kararı</th></tr>
+    <tr><td class="cell-strong">“Yetkili ne mühendisi olmalı?”</td><td><span class="chip ok">1 · imkânsız</span></td>
+      <td>Unvan alanı serbest metin değil; yalnız kabul edilen unvanlar + “Bilmiyorum” seçilebilir.</td></tr>
+    <tr><td class="cell-strong">“19 iş günü mü olmuş?”</td><td><span class="chip ok">1 · imkânsız</span></td>
+      <td>İş gününü sistem hesaplar; azsa doğru bitiş tarihi tek tık önerilir.</td></tr>
+    <tr><td class="cell-strong">“Kaşe mi mühür mü?”</td><td><span class="chip at">2 · yerinde</span></td>
+      <td>Kağıt dünyası engellenemez; cevap yükleme alanının üstüne yazılır (kesin kural komisyondan alınacak).</td></tr>
+    <tr><td class="cell-strong">“Sicil fişini de mi yükleyeceğim?”</td><td><span class="chip at">2 · yerinde</span></td>
+      <td>Teslim ekranında sabit kutu: “Fiş yüklenmez — fotoğraflı, kapalı zarfla elden.”</td></tr>
+    <tr><td class="cell-strong">“Defterimde eksik var mı?”</td><td><span class="chip at">3 · liste</span></td>
+      <td>7 maddelik zorunlu kontrol listesi; bitmeden yükleme butonu pasif.</td></tr>
+  </table></div>
+</section>
+
+<section id="akis">
+  <div class="sec-head"><span class="no">07</span><h2>Kritik akış: ilk başvuru</h2></div>
+  <p>En riskli akış, ilk kez başvuran öğrencinin akışıdır. Kilit karar noktası en baştadır:
+  staj yeri olmayan öğrenciye form <b>hiç gösterilmez</b> — “kurum bilgisi boş/uydurma başvuru”
+  hatası sınıf olarak yok edilir.</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 860 250" role="img" aria-label="İlk başvuru akışı: giriş ve durum sorusundan staj yeri kararına; yeri yoksa rehbere döner, varsa doğru form, sihirbaz, gönderim ve incelemeye ilerler; düzeltme istenirse tek belgelik döngüyle geri gelir.">
+      <defs><marker id="ar3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.4">
+        <rect x="16" y="88" width="104" height="44" rx="9"/>
+        <path d="M208 66 L268 110 L208 154 L148 110 z"/>
+        <rect x="150" y="196" width="240" height="40" rx="9" stroke-dasharray="5 4"/>
+        <rect x="300" y="88" width="120" height="44" rx="9"/>
+        <rect x="452" y="88" width="120" height="44" rx="9" style="stroke:var(--accent)" stroke-width="2.2"/>
+        <rect x="604" y="88" width="110" height="44" rx="9"/>
+        <rect x="748" y="88" width="96" height="44" rx="9"/>
+      </g>
+      <g font-family="system-ui, sans-serif" fill="currentColor" font-size="12.5">
+        <text x="68" y="106" text-anchor="middle" font-weight="600">Giriş +</text>
+        <text x="68" y="122" text-anchor="middle" font-weight="600">durum sorusu</text>
+        <text x="208" y="106" text-anchor="middle" font-weight="600">Staj yerin</text>
+        <text x="208" y="121" text-anchor="middle" font-weight="600">hazır mı?</text>
+        <text x="270" y="222" text-anchor="middle">İşyeri rehberi — form bu aşamada görünmez</text>
+        <text x="360" y="106" text-anchor="middle" font-weight="600">Doğru kabul</text>
+        <text x="360" y="121" text-anchor="middle" font-weight="600">formu (otomatik)</text>
+        <text x="512" y="106" text-anchor="middle" font-weight="600">7 adımlı</text>
+        <text x="512" y="121" text-anchor="middle" font-weight="600">sihirbaz</text>
+        <text x="659" y="106" text-anchor="middle" font-weight="600">Başvuruyu</text>
+        <text x="659" y="121" text-anchor="middle" font-weight="600">gönder</text>
+        <text x="796" y="106" text-anchor="middle" font-weight="600">Komisyon</text>
+        <text x="796" y="121" text-anchor="middle" font-weight="600">incelemesi</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.4" fill="none">
+        <line x1="120" y1="110" x2="142" y2="110" marker-end="url(#ar3)"/>
+        <line x1="268" y1="110" x2="294" y2="110" marker-end="url(#ar3)"/>
+        <line x1="420" y1="110" x2="446" y2="110" marker-end="url(#ar3)"/>
+        <line x1="572" y1="110" x2="598" y2="110" marker-end="url(#ar3)"/>
+        <line x1="714" y1="110" x2="742" y2="110" marker-end="url(#ar3)"/>
+        <path d="M208 154 L208 190" marker-end="url(#ar3)"/>
+        <path d="M150 216 L120 216 Q104 216 104 200 L104 138" marker-end="url(#ar3)"/>
+        <path d="M796 132 Q796 176 700 176 L560 176 Q512 176 512 140" stroke-dasharray="5 4" marker-end="url(#ar3)"/>
+      </g>
+      <g font-family="system-ui, sans-serif" fill="currentColor" font-size="11.5">
+        <text x="281" y="102" font-weight="700">evet</text>
+        <text x="216" y="176" font-weight="700">hayır</text>
+        <text x="120" y="188" opacity=".65">“kurum buldum”</text>
+        <text x="575" y="168" opacity=".8">düzeltme istenirse: yalnız o belge açılır, gerisi kilitli ✓</text>
+        <text x="452" y="80" style="fill:var(--accent)" font-weight="700" font-size="11">her adım otomatik kayıt</text>
+      </g>
+    </svg>
+    <figcaption>İlk başvuru akışı. Soldaki döngü hatayı baştan engeller; sağdaki kesikli döngü
+    düzeltmeyi tek belgeye daraltır — öğrenci formu baştan doldurmaz.</figcaption>
+  </figure>
+</section>
+
+<section id="durum">
+  <div class="sec-head"><span class="no">08</span><h2>Durum dili: sistemin cümleleri</h2></div>
+  <p>Başvurunun 14 iç durumu vardır; öğrenci hiçbirinin adını görmez. Her durum üç parça metne
+  çevrilir: <b>durum cümlesi + açıklama + (yalnız iş varsa) buton</b>. Örnekler:</p>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>İç durum</th><th>Öğrencinin gördüğü</th><th>Buton</th></tr>
+    <tr><td class="cell-strong">İncelemede</td>
+      <td>“Başvurun inceleniyor. <i>Senden işlem beklenmiyor — sonuçlanınca e-posta ile haber vereceğiz.</i>”</td>
+      <td class="note">yok — iş yoksa buton da yok</td></tr>
+    <tr><td class="cell-strong">Düzeltme bekleniyor</td>
+      <td>“Kabul belgende işletme kaşesi görünmüyor. Kaşelettikten sonra yeniden yükle.” <i>(ne + neden + nasıl)</i></td>
+      <td>Belgeyi yeniden yükle</td></tr>
+    <tr><td class="cell-strong">Onaylandı</td>
+      <td>“Başvurun onaylandı ✓ Stajın 8 gün sonra başlıyor. Tek işin: sigorta girişini kontrol etmek.”</td>
+      <td>Nasıl bakacağımı göster</td></tr>
+    <tr><td class="cell-strong">Kabul edildi</td>
+      <td>“Stajın kabul edildi 🎉 <i>Yapman gereken başka bir işlem yok.</i>”</td>
+      <td class="note">yok</td></tr>
+  </table></div>
+  <p class="note" style="margin-top:10px">Bildirim metni ekrandaki cümleyle birebir aynıdır; sistem iki
+  dil konuşmaz. Düzeltme açıklamaları komisyonun hazır şablonlarından gelir — bu, “belge hatalı” gibi
+  anlaşılmaz notların öğrenciye ulaşmasını yapısal olarak engeller.</p>
+</section>
+
+<section id="test">
+  <div class="sec-head"><span class="no">09</span><h2>Doğrulama: prototip ve test planı</h2></div>
+  <p>Bu tasarım şu an bir <b>hipotezler bütünü</b>. Tıklanabilir prototip hazır; sırada, sistemi hiç
+  görmemiş 5–8 öğrenciyle sesli düşünme testi var. Görevler senaryo diliyle verilir
+  (“başvuru sihirbazını aç” değil, “staja başvur”):</p>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>Test görevleri (G1–G8)</h3>
+      <ul>
+        <li>Yaz stajı başvurusunu başlat</li>
+        <li>Şirketin istediği kabul belgesini bul, indir</li>
+        <li>6–31 Temmuz tarihlerini gir (bilerek 19 iş günü — tuzak)</li>
+        <li>Eksik belgen var mı, öğren</li>
+        <li>Başvurun onaylandı mı, kontrol et</li>
+        <li>Staj defterini teslim et</li>
+        <li>Sicil fişinin nasıl teslim edileceğini bul</li>
+        <li>“Dönem içinde staj yapılır mı?” sorusunun cevabını bul</li>
+      </ul></div>
+    <div class="card"><h3>Geçme eşiği</h3>
+      <ul>
+        <li>Görevlerin <b>≥ %80'i yardımsız</b> tamamlanmalı</li>
+        <li>“Durum kontrolü” ve “sicil fişi” görevlerinde <b>%100</b> — hocaya en çok sorulan iki soru</li>
+        <li>SUS puanı ≥ 75</li>
+        <li>Hiçbir katılımcı yürütücüye soru sormak zorunda kalmamalı</li>
+      </ul>
+      <p style="margin-top:8px">Takılınan her nokta “kullanıcı hatası” değil <b>tasarım bulgusu</b>
+      olarak kaydedilir; eşik geçilmeyen görevler düzeltilip yeni katılımcılarla tekrarlanır.</p></div>
+  </div>
+  <div class="callout" style="margin-top:18px">
+    🧭 Tıklanabilir prototip: <b>prototype/index.html</b> — sağ alttaki senaryo menüsüyle sürecin
+    10 farklı anı gezilebilir. Canlıya çıktıktan sonra kalıcı ölçüm: komisyona gelen soru sayısı,
+    “düzeltme bekleniyor”a düşen başvuru oranı ve defter geri gönderme oranı.
+  </div>
+</section>
+
+<section id="acik">
+  <div class="sec-head"><span class="no">10</span><h2>Açık sorular</h2></div>
+  <p>Tasarımın içerik doğruluğu için komisyondan alınması gereken cevaplar — bunlar netleşmeden
+  ilgili metinler prototipte “doğrulanacak” statüsündedir:</p>
+  <div class="tblwrap"><table class="tbl">
+    <tr><th>Soru</th><th>Etkilediği ekran</th></tr>
+    <tr><td>Kaşe/mühür kuralının kesin cevabı</td><td>Belge yükleme uyarı metni</td></tr>
+    <tr><td>Sorumlu mühendis için kabul edilen unvanların tam listesi</td><td>Sihirbaz Adım 4 (kapalı liste)</td></tr>
+    <tr><td>Defter el yazısı zorunluluğu CENG için geçerli mi?</td><td>Defter kontrol listesi</td></tr>
+    <tr><td>Yaz okulu–staj çakışma kuralı CENG için geçerli mi?</td><td>Tarih adımına engel/uyarı</td></tr>
+    <tr><td>Vlog gereksinimlerinin resmî tanımı (süre, içerik, QR)</td><td>Vlog rehberi + kontrol listesi</td></tr>
+    <tr><td>Başvuru dönemi ve defter teslim tarihleri</td><td>Yaklaşan tarihler, hatırlatmalar</td></tr>
+  </table></div>
+</section>
+
+<footer>
+  Balıkesir Üniversitesi Bilgisayar Mühendisliği · Staj Yönetim Sistemi projesi —
+  UX tasarım dokümanı (Aşama 2). Ayrıntılı tasarım kararları depodaki
+  <b>docs/01–12</b> dosyalarında; bu sayfa sunum özetidir.
+</footer>
+
+</div>
