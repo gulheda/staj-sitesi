@@ -135,12 +135,16 @@ function home() {
     <div class="box warn">${a.fix_note || "Gerekçe için bölümle iletişime geçebilirsin."}</div>
     <button class="big" onclick="startApplication()">Yeni başvuru yap</button>`;
 
-  if (s === "sgk") h = `${P}
+  if (s === "sgk") {
+    const sgkSon = new Date(new Date(a.start_date) - 3 * 86400000).toISOString().slice(0, 10);
+    h = `${P}
     <h1>Başvurun onaylandı ✓</h1>
     <p class="sub">Stajın <b>${fmtDate(a.start_date)}</b> tarihinde başlıyor${daysTo(a.start_date) > 0 ? ` (${daysTo(a.start_date)} gün kaldı)` : ""}. Başlamadan önce tek bir işin var:</p>
     <div class="box info"><b>Sigorta (SGK) girişini kontrol et.</b><br>
       Sigortanı üniversite yapar — sen sadece yapılmış mı diye bakacaksın. 2 dakika sürer.</div>
-    <button class="big" onclick="go('sgk')">Nasıl bakacağımı göster</button>`;
+    <button class="big" onclick="go('sgk')">Nasıl bakacağımı göster</button>
+    <p class="hint" style="margin-top:14px">📅 Yaklaşan tarihler: <b>${fmtDate(sgkSon)}</b> — SGK kontrolü için son gün · <b>${fmtDate(a.start_date)}</b> — staj başlangıcın${ME.progress ? ` · toplam <b>${ME.progress.total} iş günü</b>` : ""}</p>`;
+  }
 
   if (s === "obs") h = `${P}
     <h1>Sırada tek bir adım var: OBS kaydı.</h1>
@@ -154,10 +158,13 @@ function home() {
     <div class="box info">İpucu: defter şablonunu şimdiden indirip staj başlar başlamaz doldurmaya başlayabilirsin. → <button class="link" onclick="go('docs')">Belgelerim</button></div>`;
 
   if (s === "during") {
-    const total = ME.application ? workdayText(a) : "";
+    const pr = ME.progress || {};
+    const kalan = pr.total && pr.done != null ? pr.total - pr.done : null;
     h = `${P}
     <h1>Stajın devam ediyor.</h1>
-    <p class="sub">${total} · Bitiş: ${fmtDate(a.end_date)}</p>
+    <p class="sub"><b>${pr.done ?? "?"}. iş günü / ${pr.total ?? "?"}</b>${kalan != null ? ` · kalan ${kalan} iş günü` : ""} · Bitiş: ${fmtDate(a.end_date)}</p>
+    <div class="prog"><div class="bar"><i style="width:${pr.total ? Math.round(pr.done / pr.total * 100) : 0}%"></i></div>
+      <div class="txt"><span>Defterinde şu ana kadar <b>${pr.done ?? "?"} sayfa</b> olmalı (her iş günü için 1 sayfa)</span></div></div>
     <div class="box warn"><b>Her gün defter sayfanı doldur ve imzalat.</b> Son güne bırakma — en çok yapılan hata bu.</div>
     <button class="big" onclick="go('docs')">Defter sayfasını indir</button>`;
   }
@@ -187,11 +194,6 @@ function home() {
   el(notifs + h);
 }
 
-function workdayText(a) {
-  const start = new Date(a.start_date), now = new Date(ME.today);
-  const done = Math.max(1, Math.round((now - start) / 86400000) + 1);
-  return `${Math.min(done, 30)}. gün`;
-}
 
 /* ───────── Kurum bulma → kabul belgesi ───────── */
 function acceptScreen() {
@@ -272,17 +274,33 @@ async function wizard(msg) {
       Cevabı alınca dönüp devam edersin; bilgilerin kaydedildi.</div>
     <button class="big" onclick="wSave(5,{muh_ad:$('mad').value,muh_unvan:$('munvan').value})">Devam et</button>${backB}`;
 
-  if (n === 5) body = `
-    <h1>Staj tarihlerini seç.</h1>
-    <p class="sub">İş günü hesabını biz yaparız — sen sadece tarihleri seç.</p>
-    <label>Başlangıç</label><input id="d1" type="date" value="${a.start_date || ""}" onchange="dateCheck()">
-    <label>Bitiş</label><input id="d2" type="date" value="${a.end_date || ""}" onchange="dateCheck()">
-    <div id="dateRes">${a.start_date && a.end_date ? "" : ""}</div>
+  if (n === 5) {
+    const donem = a.tur === "donem";
+    const savedDays = (a.calisma_gunleri || "").split(",").filter(Boolean).map(Number);
+    const DAY_NAMES = [[1, "Pzt"], [2, "Sal"], [3, "Çar"], [4, "Per"], [5, "Cum"]];
+    body = `
+    <h1>Başlangıç tarihini seç, gerisini biz hesaplayalım.</h1>
+    <p class="sub">Sen başlangıcı seç; 20 iş gününü tamamlayan bitiş tarihini sistem bulur.
+    Hafta sonları ve resmî tatiller hesaba katılmaz.</p>
+    ${donem ? `
+    <label>Hangi günler çalışacaksın? <span class="muted">(en az 3 gün)</span></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+      ${DAY_NAMES.map(([v, t]) => `<label class="radio" style="margin:0;padding:10px 14px">
+        <input type="checkbox" class="wday" value="${v}" ${savedDays.length ? (savedDays.includes(v) ? "checked" : "") : "checked"}
+        onchange="onDatesInput()"> ${t}</label>`).join("")}
+    </div>
+    <p class="hint">Ders programınla çakışmayan günleri işaretli bırak.</p>` : ""}
+    <label>Başlangıç</label>
+    <input id="d1" type="date" value="${a.start_date || ""}" min="${ME.today}" onchange="onDatesInput()">
+    <label>Bitiş <span class="muted">(boş bırakırsan biz hesaplarız)</span></label>
+    <input id="d2" type="date" value="${a.end_date || ""}" onchange="dateCheck()">
+    <div id="dateRes"></div>
     <label>İşletme staj ücreti ödeyecek mi?</label>
     <select id="ucret">${[["hayir", "Hayır"], ["evet", "Evet"], ["bilmiyorum", "Bilmiyorum"]]
       .map(([v, t]) => `<option value="${v}" ${a.ucret === v ? "selected" : ""}>${t}</option>`).join("")}</select>
     <p class="hint">“Evet” dersen ücret katkısı belgesi (EK-2) sonraki adımda listene eklenir.</p>
     <button class="big" id="d5next" onclick="wSaveDates()">Devam et</button>${backB}`;
+  }
 
   if (n === 6) {
     const hasKabul = ME.documents.some(d => d.kind === "kabul");
@@ -308,7 +326,7 @@ async function wizard(msg) {
     <p class="after">Gönderince komisyon inceleyecek; inceleme başlayana kadar değişiklik yapabilirsin.</p>${backB}`;
 
   el(head + body);
-  if (n === 5 && a.start_date && a.end_date) dateCheck();
+  if (n === 5 && a.start_date) (a.end_date ? dateCheck() : onDatesInput());
 }
 
 async function wSave(nextStep, fields) {
@@ -323,15 +341,46 @@ async function wStep(n) {
 }
 
 let lastDateCheck = null;
-async function dateCheck() {
+const pickedDays = () => [...document.querySelectorAll(".wday:checked")].map(i => +i.value);
+
+// Başlangıç (veya çalışma günleri) değişti: bitiş boşsa sistem hesaplayıp doldurur.
+async function onDatesInput() {
+  const s = $("d1").value;
+  if (!s) return;
+  const payload = { start: s, tur: wizardApp.tur, days: pickedDays() };
+  if (!$("d2").value) {
+    const r = await api("/application/check-dates", { method: "POST", json: payload });
+    if (r.suggestion?.auto && r.suggestion.value) {
+      $("d2").value = r.suggestion.value;
+      await dateCheck(true);
+      return;
+    }
+  }
+  dateCheck();
+}
+
+async function dateCheck(autoFilled) {
   const s = $("d1").value, e = $("d2").value;
   if (!s || !e) return;
-  lastDateCheck = await api("/application/check-dates", { method: "POST", json: { start: s, end: e } });
+  lastDateCheck = await api("/application/check-dates",
+    { method: "POST", json: { start: s, end: e, tur: wizardApp.tur, days: pickedDays() } });
   const r = lastDateCheck;
-  $("dateRes").innerHTML = r.ok
-    ? `<div class="box ok">✓ ${r.workdays} iş günü — kurala uygun.</div>`
-    : `<div class="box warn">${r.problems.join("<br>")}${r.suggestion ? `<br><br>
-        <button class="big" style="background:#b45309" onclick="applySuggestion()">${r.suggestion.field === "end" ? "Bitişi " + fmtDate(r.suggestion.value) + " yap (önerilen)" : "Başlangıcı " + fmtDate(r.suggestion.value) + " yap (önerilen)"}</button>` : ""}</div>`;
+  if (r.ok) {
+    const b = r.breakdown || {};
+    const skipped = [];
+    if (b.weekend) skipped.push(`${b.weekend} hafta sonu günü`);
+    if (b.offDays) skipped.push(`${b.offDays} çalışmadığın gün`);
+    if (b.holidays?.length) skipped.push(b.holidays.join(", "));
+    $("dateRes").innerHTML = `<div class="box ok">
+      ${autoFilled ? `✓ <b>Bitişi senin için hesapladık: ${fmtDate(e)}.</b> İstersen değiştirebilirsin.<br>` : "✓ "}
+      <b>${r.workdays} iş günü</b> — kurala uygun.
+      ${skipped.length ? `<br><span class="muted">Sayılmayanlar: ${skipped.join(" · ")}.</span>` : ""}</div>`;
+  } else {
+    $("dateRes").innerHTML = `<div class="box warn">${r.problems.join("<br>")}${r.suggestion?.value ? `<br><br>
+      <button class="big" style="background:#b45309" onclick="applySuggestion()">${r.suggestion.field === "end"
+        ? "Bitişi " + fmtDate(r.suggestion.value) + " yap (önerilen)"
+        : "Başlangıcı " + fmtDate(r.suggestion.value) + " yap (önerilen)"}</button>` : ""}</div>`;
+  }
   $("d5next").disabled = !r.ok;
 }
 function applySuggestion() {
@@ -340,8 +389,9 @@ function applySuggestion() {
   dateCheck();
 }
 async function wSaveDates() {
-  if (!lastDateCheck || !lastDateCheck.ok) { dateCheck(); return; }
-  wSave(6, { start_date: $("d1").value, end_date: $("d2").value, ucret: $("ucret").value });
+  if (!lastDateCheck || !lastDateCheck.ok) { onDatesInput(); return; }
+  wSave(6, { start_date: $("d1").value, end_date: $("d2").value, ucret: $("ucret").value,
+    calisma_gunleri: wizardApp.tur === "donem" ? pickedDays().join(",") : null });
 }
 
 async function wSubmit() {
