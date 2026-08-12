@@ -35,7 +35,10 @@
   .radio { display: flex; align-items: center; gap: 12px; border: 1.5px solid #d1d5db; padding: 15px;
            margin: 10px 0; cursor: pointer; border-radius: 12px; font-size: 17px; background: #fff; }
   .radio:hover { border-color: #1d4ed8; }
-  .radio input { width: 20px; height: 20px; accent-color: #1d4ed8; }
+  .radio:has(input:checked) { border-color: #1d4ed8; background: #eff6ff; }
+  .radio input { width: 20px; height: 20px; accent-color: #1d4ed8; flex-shrink: 0; }
+  .radio .t { font-weight: 600; }
+  .radio .d { font-size: 14px; color: #6b7280; font-weight: 400; }
   /* sade ilerleme: ince çubuk + tek satır */
   .prog { margin: 0 0 26px; }
   .prog .bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
@@ -154,13 +157,21 @@ login(){
 onboard(){
   render(`
     <h1>Hoş geldin 👋</h1>
-    <p class="sub">Sana doğru adımı gösterebilmemiz için tek bir soru:</p>
-    <p style="font-weight:600;margin-bottom:6px">Şu anda hangi durumdasın?</p>
-    <label class="radio"><input type="radio" name="st" onclick="pick('noplace')"> İlk kez staj başvurusu yapacağım</label>
-    <label class="radio"><input type="radio" name="st" onclick="pick('review')"> Daha önce başvuru yaptım</label>
-    <label class="radio"><input type="radio" name="st" onclick="pick('during')"> Stajım başladı</label>
-    <label class="radio"><input type="radio" name="st" onclick="pick('deliver')"> Stajımı tamamladım</label>
+    <p class="sub">Şu an neredeysen oradan devam edelim:</p>
+    <label class="radio"><input type="radio" name="st" onclick="pick('noplace')">
+      <span><span class="t">Staja yeni başlıyorum</span><br>
+      <span class="d">Staj yeri arıyorum ya da başvuru yapacağım</span></span></label>
+    <label class="radio"><input type="radio" name="st" onclick="pick('review')">
+      <span><span class="t">Başvurumu yaptım</span><br>
+      <span class="d">Sonucumu ve yapmam gerekenleri görmek istiyorum</span></span></label>
+    <label class="radio"><input type="radio" name="st" onclick="pick('during')">
+      <span><span class="t">Şu an stajdayım</span><br>
+      <span class="d">Defter, vlog ve staj süresince yapılacaklar</span></span></label>
+    <label class="radio"><input type="radio" name="st" onclick="pick('deliver')">
+      <span><span class="t">Stajım bitti</span><br>
+      <span class="d">Defter teslimi, sicil fişi ve sonuç</span></span></label>
     <button class="big" id="cont" disabled onclick="go('home')">Devam et</button>
+    <p class="after">Bunu sadece ilk girişte soruyoruz — sonrasında durumunu sistem kendisi takip eder.</p>
   `, "home");
 },
 
