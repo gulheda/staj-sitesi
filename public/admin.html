@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Komisyon Paneli — BAÜN Staj</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+         background: #f3f4f6; color: #1f2328; font-size: 15.5px; line-height: 1.55; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+  h1 { font-size: 24px; }
+  h2 { font-size: 17px; margin: 26px 0 10px; }
+  .stats { color: #6b7280; font-size: 14px; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 18px; margin: 10px 0; }
+  .card .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .who { font-weight: 700; }
+  .meta { color: #6b7280; font-size: 14px; margin: 6px 0; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 2px 9px; }
+  .b-sub { background: #eef2ff; color: #1e40af; }
+  .b-def { background: #fef9c3; color: #854d0e; }
+  .b-sic { background: #dcfce7; color: #166534; }
+  button { font-family: inherit; font-size: 14px; border-radius: 9px; padding: 8px 14px; cursor: pointer;
+           border: 1.5px solid #d1d5db; background: #fff; margin: 4px 6px 0 0; }
+  button.ok { background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 600; }
+  button.warn { background: #b45309; border-color: #b45309; color: #fff; font-weight: 600; }
+  button.bad { color: #b91c1c; border-color: #fca5a5; }
+  select, textarea, input { font-family: inherit; font-size: 14px; border: 1.5px solid #d1d5db;
+    border-radius: 9px; padding: 8px 10px; width: 100%; margin-top: 6px; }
+  a { color: #1d4ed8; }
+  .empty { color: #6b7280; background: #fff; border: 1px dashed #d1d5db; border-radius: 12px;
+           padding: 18px; text-align: center; }
+  .login { max-width: 380px; margin: 60px auto; background: #fff; border: 1px solid #e5e7eb;
+           border-radius: 14px; padding: 26px; }
+  .login input { margin-bottom: 10px; padding: 12px; font-size: 16px; }
+  .login button { width: 100%; padding: 13px; font-size: 16px; background: #1d4ed8; color: #fff;
+                  border: 0; font-weight: 600; }
+  .err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 9px; padding: 10px 12px;
+         font-size: 14px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function api(path, opts = {}) {
+  if (opts.json) { opts.body = JSON.stringify(opts.json); opts.headers = { "Content-Type": "application/json" }; delete opts.json; }
+  const r = await fetch("/api" + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "İşlem başarısız.");
+  return data;
+}
+
+function loginScreen(msg) {
+  $("root").innerHTML = `
+    <div class="login">
+      <h1 style="margin-bottom:14px">Komisyon girişi</h1>
+      ${msg ? `<div class="err">${msg}</div>` : ""}
+      <input id="no" placeholder="Kullanıcı adı">
+      <input id="pw" type="password" placeholder="Şifre">
+      <button onclick="doLogin()">Giriş yap</button>
+    </div>`;
+}
+async function doLogin() {
+  try {
+    const r = await api("/login", { method: "POST", json: { no: $("no").value, pass: $("pw").value } });
+    if (r.role !== "admin") return loginScreen("Bu hesap komisyon hesabı değil.");
+    load();
+  } catch (e) { loginScreen(e.message); }
+}
+
+// Düzeltme isterken hazır şablonlar: öğrenciye giden metnin kalitesini garanti eder.
+const TEMPLATES = [
+  "Yüklediğin kabul belgesinde işletme kaşesi görünmüyor. Belgeyi işletmeye kaşelettikten sonra yeniden yükle.",
+  "Yüklediğin belgede imza eksik. İşletme yetkilisine imzalattıktan sonra yeniden yükle.",
+  "Yüklediğin dosya okunamıyor. Belgeyi düz bir zeminde, aydınlık ortamda çekip yeniden yükle.",
+  "Yanlış belge yüklenmiş görünüyor. İşletmenin imzaladığı staj kabul belgesini (EK-1) yüklemelisin.",
+  "Defterinde bazı günlerin sayfası eksik. Her staj günü için ayrı sayfa olacak şekilde tamamlayıp yeniden yükle.",
+  "Defter sayfalarında işyeri sorumlusunun imzası eksik. İmzalattıktan sonra yeniden yükle.",
+];
+
+function appCard(a) {
+  const isDefter = a.status === "evaluating";
+  const sicilOnly = !isDefter && a.status !== "submitted";
+  const docs = a.documents.map(d =>
+    `<a href="/api/admin/file/${d.id}">📎 ${d.kind === "kabul" ? "Kabul belgesi" : "Staj defteri"} (${d.orig_name})</a>`).join(" · ") || "—";
+  const tmpl = TEMPLATES.map((t, i) => `<option value="${i}">${t.slice(0, 70)}…</option>`).join("");
+  return `<div class="card">
+    <div class="top">
+      <span class="who">${a.name} <span class="meta">· ${a.ogrenci_no} · ${a.staj_no}. staj</span></span>
+      <span class="badge ${isDefter ? "b-def" : sicilOnly ? "b-sic" : "b-sub"}">
+        ${isDefter ? "Defter değerlendirme" : sicilOnly ? "Sicil fişi onayı" : "Yeni başvuru"}</span>
+    </div>
+    <div class="meta">${a.kurum_adi || "—"} (${a.kurum_sehir || "—"}) · ${a.tur === "donem" ? "dönem içi" : "yaz"} ·
+      ${a.start_date} → ${a.end_date} · <b>${a.workdays ?? "?"} iş günü</b> ·
+      sorumlu: ${a.muh_ad || "—"} (${a.muh_unvan || "—"}) · ücret: ${a.ucret || "—"}</div>
+    <div class="meta">Belgeler: ${docs}</div>
+    ${a.sicil_delivered && !a.sicil_confirmed ? `
+      <div class="meta">✉️ Öğrenci sicil fişi zarfını teslim ettiğini bildirdi.
+      <button class="ok" onclick="act('/admin/sicil/${a.id}/confirm',{})">Zarf ulaştı, onayla</button></div>` : ""}
+    ${!sicilOnly ? `
+      <select id="t${a.id}"><option value="">Düzeltme şablonu seç (veya aşağıya yaz)…</option>${tmpl}</select>
+      <textarea id="n${a.id}" rows="2" placeholder="Öğrencinin göreceği açıklama — ne + neden + nasıl"></textarea>
+      <div>
+        ${isDefter
+          ? `<button class="ok" onclick="decide(${a.id},'accept_defter')">Stajı kabul et</button>
+             <button class="warn" onclick="decide(${a.id},'fix_defter')">Defterde düzeltme iste</button>`
+          : `<button class="ok" onclick="decide(${a.id},'approve')">Onayla</button>
+             <button class="warn" onclick="decide(${a.id},'fix')">Düzeltme iste</button>
+             <button class="bad" onclick="decide(${a.id},'reject')">Reddet</button>`}
+      </div>` : ""}
+  </div>`;
+}
+
+function qCard(q) {
+  return `<div class="card">
+    <div class="who">${q.name} <span class="meta">· ${q.ogrenci_no} · ${q.created_at.slice(0, 10)}</span></div>
+    <p style="margin:8px 0">${q.text}</p>
+    <textarea id="qa${q.id}" rows="2" placeholder="Cevabın — öğrencinin diliyle"></textarea>
+    <label style="font-size:13.5px;display:flex;gap:8px;align-items:center;margin-top:6px">
+      <input type="checkbox" id="qf${q.id}" style="width:auto"> Bu cevabı SSS'ye de ekle
+      <input id="qc${q.id}" placeholder="SSS kategorisi" style="max-width:160px">
+    </label>
+    <button class="ok" onclick="answer(${q.id})">Cevabı gönder</button>
+  </div>`;
+}
+
+async function load() {
+  let d;
+  try { d = await api("/admin/queue"); } catch (e) { return loginScreen(); }
+  document.title = `(${d.apps.length + d.questions.length}) Komisyon Paneli`;
+  $("root").innerHTML = `
+    <header>
+      <h1>Komisyon Paneli</h1>
+      <span class="stats">düzeltme bekleyen: ${d.stats.fix} · kabul edilen staj: ${d.stats.accepted} ·
+        <a href="#" onclick="api('/logout',{method:'POST'}).then(()=>loginScreen());return false">çıkış</a></span>
+    </header>
+    <h2>Bekleyen işler (${d.apps.length})</h2>
+    ${d.apps.length ? d.apps.map(appCard).join("") : `<div class="empty">Bekleyen iş yok 👍</div>`}
+    <h2>Öğrenci soruları (${d.questions.length})</h2>
+    ${d.questions.length ? d.questions.map(qCard).join("") : `<div class="empty">Cevap bekleyen soru yok.</div>`}`;
+  document.querySelectorAll("select[id^=t]").forEach(sel => {
+    sel.onchange = () => { const id = sel.id.slice(1); if (sel.value !== "") $("n" + id).value = TEMPLATES[+sel.value]; };
+  });
+}
+
+async function decide(id, action) {
+  const note = $("n" + id)?.value || "";
+  try {
+    await api(`/admin/app/${id}/decision`, { method: "POST", json: { action, note } });
+    load();
+  } catch (e) { alert(e.message); }
+}
+async function act(path, json) { try { await api(path, { method: "POST", json }); load(); } catch (e) { alert(e.message); } }
+async function answer(id) {
+  try {
+    await api(`/admin/question/${id}/answer`, { method: "POST",
+      json: { answer: $("qa" + id).value, addToFaq: $("qf" + id).checked, category: $("qc" + id).value } });
+    load();
+  } catch (e) { alert(e.message); }
+}
+
+load();
+</script>
+</body>
+</html>

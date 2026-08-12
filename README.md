@@ -4,10 +4,32 @@
 sormadan tamamlayabileceği, kullanıcı deneyimi (UX) odaklı bir self-service staj
 portalı.
 
-> **Bu depo şu anda projenin 1. ve 2. aşamasını içerir: Süreç Analizi ve UX
-> Tasarımı.** Hocamızın talebi doğrultusunda önce kod değil, kullanıcı deneyimi
-> tasarlandı. Teknik geliştirme (Node.js) bu tasarım onaylandıktan sonra
-> başlayacaktır.
+Depo üç şey içerir: **UX tasarım dokümanları** (`docs/`), **tıklanabilir
+prototip** (`prototype/`) ve tasarımı birebir uygulayan **çalışan Node.js
+uygulaması** (`server.js` + `public/`).
+
+## Çalıştırma
+
+```bash
+npm install
+npm start        # http://localhost:3000
+```
+
+**Demo hesaplar** (ilk çalıştırmada otomatik oluşturulur):
+
+| Kim | Giriş | Şifre | Durumu |
+|---|---|---|---|
+| Deniz Yılmaz | `20251001234` | ilk giriş: TC `11111111111` → kendi şifresini belirler | süreç başında |
+| Mert Kaya | `20251001111` | `mert1234` | başvurusu incelemede |
+| Ayşe Demir | `20251002222` | `ayse1234` | düzeltme istendi |
+| Zeynep Şahin | `20251003333` | `zeynep1234` | stajı bitti, defter teslim aşamasında |
+| Komisyon | `komisyon` | `komisyon123` | yönetici paneli (`/admin.html`) |
+
+**Teknik yapı:** Node.js + Express, SQLite (better-sqlite3), dosya yükleme
+tür/boyut denetimli (multer). Öğrencinin aşaması (`deriveStage`) veriden
+türetilir — arayüz yalnızca sunucunun bildirdiği aşamayı çizer. Pilot
+sürümde SQLite kullanılır; şema PostgreSQL'e birebir taşınabilir.
+Sıfırlamak için `staj.db` dosyasını silip yeniden başlatın.
 
 ## Projenin tek cümlelik hedefi
 

@@ -1,0 +1,28 @@
+{
+  "name": "baun-staj-portali",
+  "version": "1.0.0",
+  "description": "BAÜN Bilgisayar Mühendisliği Staj Yönetim Sistemi",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gulheda/staj-sitesi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gulheda/staj-sitesi/issues"
+  },
+  "homepage": "https://github.com/gulheda/staj-sitesi#readme",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.2.1",
+    "multer": "^2.2.0"
+  }
+}

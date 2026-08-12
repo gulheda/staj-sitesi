@@ -1,0 +1,523 @@
+/* BAÜN Staj Portalı — öğrenci arayüzü.
+   Tek ilke: ekran, sunucunun bildirdiği aşamaya göre çizilir;
+   öğrenciye seçenek değil, o anki tek doğru işlem gösterilir. */
+
+let ME = null;          // /api/me cevabı
+let wizardApp = null;   // sihirbazdaki taslak
+
+const $ = (id) => document.getElementById(id);
+const el = (html) => { $("app").innerHTML = html; window.scrollTo(0, 0); };
+
+async function api(path, opts = {}) {
+  if (opts.json) {
+    opts.body = JSON.stringify(opts.json);
+    opts.headers = { "Content-Type": "application/json" };
+    delete opts.json;
+  }
+  const r = await fetch("/api" + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "Bir şeyler ters gitti. Birazdan tekrar dene.");
+  return data;
+}
+
+function nav(active) {
+  $("topbar").style.display = "flex";
+  document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.nav === active));
+}
+
+const STAGES = ["Staj yeri bulma", "Belgeleri hazırlama", "Başvuru", "Komisyon incelemesi", "Onay",
+  "SGK kontrolü", "OBS kaydı", "Staj", "Defter hazırlama", "Teslim", "Değerlendirme", "Tamamlandı"];
+const STAGE_NO = { noplace: 0, draft: 2, review: 3, fix: 3, rejected: 3, sgk: 5, obs: 6,
+  ready: 6, during: 7, deliver: 9, evaluating: 10, fix_defter: 9, accepted: 12 };
+
+function prog(now) {
+  const pct = Math.round(now / STAGES.length * 100);
+  return `<div class="prog">
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="txt"><span>Adım ${now}/12 · ${STAGES[now] ?? "Bitti"}</span><span>%${pct}</span></div>
+    <details><summary>Tüm adımları gör</summary><ul>
+      ${STAGES.map((s, i) => `<li class="${i < now ? "done" : (i === now ? "now" : "")}">${i < now ? "✓" : (i === now ? "→" : "·")} ${s}</li>`).join("")}
+    </ul></details></div>`;
+}
+
+const back = `<div class="backrow"><button class="link" onclick="go('home')">← Stajıma dön</button></div>`;
+const errBox = (m) => `<div class="box err">${m}</div>`;
+const fmtDate = (s) => s ? new Date(s + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "";
+const daysTo = (s) => Math.ceil((new Date(s) - new Date(ME.today)) / 86400000);
+
+async function refresh() { ME = await api("/me"); }
+
+/* ───────── Giriş ───────── */
+function loginScreen(msg) {
+  $("topbar").style.display = "none";
+  el(`
+    <div style="margin-top:40px">
+      <h1>BAÜN Staj</h1>
+      <p class="sub">Stajınla ilgili her şey burada.</p>
+      ${msg ? errBox(msg) : ""}
+      <label>Öğrenci numaran</label>
+      <input id="no" type="text" placeholder="20251001234" autocomplete="username">
+      <label>Şifren</label>
+      <input id="pw" type="password" autocomplete="current-password">
+      <p class="hint">İlk kez mi giriyorsun? Şifre yerine TC kimlik numaranı yaz — sonra kendi şifreni oluşturacaksın.</p>
+      <br><button class="big" onclick="doLogin()">Giriş yap</button>
+      <p class="center"><button class="link" style="font-size:14px"
+        onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button></p>
+    </div>`);
+}
+
+async function doLogin() {
+  try {
+    const r = await api("/login", { method: "POST", json: { no: $("no").value, pass: $("pw").value } });
+    if (r.firstLogin) return setPassScreen(r.name);
+    if (r.role === "admin") { location.href = "/admin.html"; return; }
+    await refresh(); go("home");
+  } catch (e) { loginScreen(e.message); }
+}
+
+function setPassScreen(name, msg) {
+  el(`
+    <div style="margin-top:40px">
+      <h1>Merhaba ${name.split(" ")[0]} 👋</h1>
+      <p class="sub">Kimliğini doğruladık. Artık kendine bir şifre belirle — bundan sonra TC numaranla değil, bu şifreyle gireceksin.</p>
+      ${msg ? errBox(msg) : ""}
+      <label>Yeni şifren</label>
+      <input id="pw1" type="password" autocomplete="new-password">
+      <p class="hint">En az 8 karakter. Unutmayacağın ama tahmin edilemeyecek bir şey seç.</p>
+      <br><button class="big" onclick="doSetPass()">Şifremi kaydet ve başla</button>
+    </div>`);
+}
+
+async function doSetPass() {
+  try {
+    await api("/set-password", { method: "POST", json: { password: $("pw1").value } });
+    await refresh(); go("home");
+  } catch (e) { setPassScreen(ME?.user?.name || "", e.message); }
+}
+
+async function logout() { await api("/logout", { method: "POST" }); loginScreen(); }
+
+/* ───────── Stajım (durum odaklı ana ekran) ───────── */
+function home() {
+  nav("home");
+  const s = ME.stage, a = ME.application;
+  const notifs = ME.notifications.filter(n => !n.seen).map(n => `<div class="notif">🔔 ${n.text}</div>`).join("");
+  const P = prog(STAGE_NO[s] ?? 0);
+  let h = "";
+
+  if (s === "noplace") h = `${P}
+    <h1>Önce staj yapacağın bir kurum bul.</h1>
+    <p class="sub">Kurumda bilgisayar ya da yazılım alanında çalışan bir mühendis olmalı — tek şart bu.</p>
+    <div class="box info">Emin değilsen kuruma şunu sor:<br><i>“Staj süresince benden sorumlu olacak mühendisin unvanı nedir?”</i></div>
+    <button class="big" onclick="go('accept')">Kurum buldum</button>
+    <p class="after">Sonraki adım: kurumun imzalayacağı belgeyi birlikte hazırlayacağız.</p>`;
+
+  if (s === "draft") h = `${P}
+    <h1>Başvurun yarım kaldı.</h1>
+    <p class="sub">Bilgilerin kaydedildi — kaldığın yerden devam edebilirsin.</p>
+    <button class="big" onclick="go('wizard')">Devam et (Adım ${a.wizard_step}/7)</button>`;
+
+  if (s === "review") h = `${P}
+    <h1>Başvurun inceleniyor.</h1>
+    <p class="sub">Senden bir işlem beklenmiyor. Sonuçlanınca bildirimle haber vereceğiz.</p>
+    <div class="box info">Başvurular genellikle 5 iş günü içinde incelenir.</div>`;
+
+  if (s === "fix") h = `${P}
+    <h1>Bir belgeyi düzeltmen gerekiyor.</h1>
+    <p class="sub">Komisyonun notu:</p>
+    <div class="box warn"><b>${a.fix_note || "Belgende düzeltme istendi."}</b></div>
+    <div class="upload" id="up" onclick="pickFile('kabul')">Belgeyi buraya yükle: <u>dosya seç</u><br>
+      <span class="muted">PDF veya fotoğraf · en fazla 10 MB</span></div>
+    <p class="after">Yeni belgen doğrudan komisyona gidecek.</p>`;
+
+  if (s === "rejected") h = `${P}
+    <h1>Başvurun kabul edilmedi.</h1>
+    <div class="box warn">${a.fix_note || "Gerekçe için bölümle iletişime geçebilirsin."}</div>
+    <button class="big" onclick="startApplication()">Yeni başvuru yap</button>`;
+
+  if (s === "sgk") h = `${P}
+    <h1>Başvurun onaylandı ✓</h1>
+    <p class="sub">Stajın <b>${fmtDate(a.start_date)}</b> tarihinde başlıyor${daysTo(a.start_date) > 0 ? ` (${daysTo(a.start_date)} gün kaldı)` : ""}. Başlamadan önce tek bir işin var:</p>
+    <div class="box info"><b>Sigorta (SGK) girişini kontrol et.</b><br>
+      Sigortanı üniversite yapar — sen sadece yapılmış mı diye bakacaksın. 2 dakika sürer.</div>
+    <button class="big" onclick="go('sgk')">Nasıl bakacağımı göster</button>`;
+
+  if (s === "obs") h = `${P}
+    <h1>Sırada tek bir adım var: OBS kaydı.</h1>
+    <p class="sub">OBS'de staj dersini seçmen gerekiyor — yoksa stajın nota işlenemez.</p>
+    <div class="box info"><b>1.</b> OBS'ye gir<br><b>2.</b> Ders kaydı → <b>“Staj I”</b> dersini seç<br><b>3.</b> Onayla</div>
+    <button class="big" onclick="markObs()">OBS kaydımı yaptım ✓</button>`;
+
+  if (s === "ready") h = `${P}
+    <h1>Her şey hazır 🎒</h1>
+    <p class="sub">Stajın <b>${fmtDate(a.start_date)}</b>'de başlıyor (${daysTo(a.start_date)} gün kaldı). Şu an yapman gereken bir şey yok.</p>
+    <div class="box info">İpucu: defter şablonunu şimdiden indirip staj başlar başlamaz doldurmaya başlayabilirsin. → <button class="link" onclick="go('docs')">Belgelerim</button></div>`;
+
+  if (s === "during") {
+    const total = ME.application ? workdayText(a) : "";
+    h = `${P}
+    <h1>Stajın devam ediyor.</h1>
+    <p class="sub">${total} · Bitiş: ${fmtDate(a.end_date)}</p>
+    <div class="box warn"><b>Her gün defter sayfanı doldur ve imzalat.</b> Son güne bırakma — en çok yapılan hata bu.</div>
+    <button class="big" onclick="go('docs')">Defter sayfasını indir</button>`;
+  }
+
+  if (s === "deliver" || s === "fix_defter") h = `${P}
+    <h1>${s === "fix_defter" ? "Defterinde düzeltme istendi." : "Stajın bitti 🎉"}</h1>
+    ${s === "fix_defter" ? `<div class="box warn"><b>${a.fix_note || ""}</b></div>` :
+      `<p class="sub">Son iki işin kaldı:</p>
+       <div class="box info"><b>1.</b> Staj defterini buradan yükle<br>
+       <b>2.</b> Sicil fişini kapalı zarfla bölüm sekreterliğine elden götür</div>`}
+    <button class="big" onclick="go('deliver')">${s === "fix_defter" ? "Defteri yeniden yükle" : "Defteri yüklemeye başla"}</button>`;
+
+  if (s === "evaluating") h = `${P}
+    <h1>Defterin değerlendiriliyor.</h1>
+    <p class="sub">Senden bir işlem beklenmiyor. Sonuç açıklanınca haber vereceğiz.</p>
+    ${a.sicil_confirmed ? '<div class="box ok">✓ Sicil fişin bölüme ulaştı. Her şey tamam.</div>'
+      : a.sicil_delivered ? '<div class="box info">Sicil fişini teslim ettiğini işaretledin — komisyon zarfı alınca onaylayacak.</div>'
+      : `<div class="box warn">Sicil fişini henüz götürmediysen unutma: işyerinin <b>fotoğraflı</b> doldurduğu fişi kapalı zarfla bölüm sekreterliğine elden götür.<br><br>
+         <label class="check" style="border:0"><input type="checkbox" onchange="markSicil(this.checked)"> Zarfı teslim ettim</label></div>`}`;
+
+  if (s === "accepted") h = `${P}
+    <div class="center"><div class="icon">🎓</div></div>
+    <h1 class="center">Stajın kabul edildi!</h1>
+    <p class="sub center">Her şey tamamlandı. Yapman gereken başka bir şey yok.</p>
+    <div class="box info center">Staj notun OBS'ye işlenince orada görünecek.</div>`;
+
+  el(notifs + h);
+}
+
+function workdayText(a) {
+  const start = new Date(a.start_date), now = new Date(ME.today);
+  const done = Math.max(1, Math.round((now - start) / 86400000) + 1);
+  return `${Math.min(done, 30)}. gün`;
+}
+
+/* ───────── Kurum bulma → kabul belgesi ───────── */
+function acceptScreen() {
+  nav("home");
+  el(`${back}
+    <h1>Stajını ne zaman yapacaksın?</h1>
+    <p class="sub">Cevabına göre doğru kabul formunu senin için seçeceğiz.</p>
+    <label class="radio"><input type="radio" name="t" value="yaz" checked> Yaz tatilinde</label>
+    <label class="radio"><input type="radio" name="t" value="donem"> Dönem içinde <span class="muted">(haftada en az 3 gün)</span></label>
+    <button class="big" onclick="acceptDoc()">Devam et</button>`);
+}
+
+function acceptDoc() {
+  const tur = document.querySelector("input[name=t]:checked").value;
+  el(`${back}
+    <h1>Kuruma bu belgeyi imzalat.</h1>
+    <p class="sub">${tur === "yaz" ? "Yaz stajı" : "Dönem içi staj"} yapacağın için doğru formu senin yerine seçtik.</p>
+    <div class="box info"><b>Staj kabul belgesi</b> <span class="muted">(resmî adı: ${tur === "yaz" ? "EK-1" : "EK-1A"})</span><br><br>
+      • Üst kısmını sen dolduracaksın<br>
+      • Kurum yetkilisi <b>imzalayacak</b> ve <b>kaşeleyecek</b><br>
+      • İkisi de yoksa komisyon belgeyi geri gönderir</div>
+    <button class="quiet" onclick="alert('Pilot sürümde form dosyaları bölüm sayfasından indirilir; canlıda buradan inecek.')">Belgeyi indir</button>
+    <button class="big" onclick="startApplication('${tur}')">İmzalattım, başvuruya geç →</button>`);
+}
+
+async function startApplication(tur) {
+  try {
+    wizardApp = await api("/application", { method: "POST" });
+    if (tur) wizardApp = await api("/application", { method: "PATCH", json: { tur, wizard_step: 1 } });
+    go("wizard");
+  } catch (e) { alert(e.message); }
+}
+
+/* ───────── 7 adımlı sihirbaz ───────── */
+const STEP_NAMES = ["Bilgilerin", "Staj türün", "Kurum", "Sorumlu mühendis", "Tarihler", "Belge", "Kontrol"];
+
+async function wizard(msg) {
+  nav("home");
+  wizardApp = wizardApp || ME.application;
+  const a = wizardApp, n = a.wizard_step || 1;
+  const head = `<div class="prog"><div class="bar"><i class="blue" style="width:${Math.round(n / 7 * 100)}%"></i></div>
+    <div class="txt"><span>Adım ${n}/7 · ${STEP_NAMES[n - 1]}</span></div></div>${msg ? errBox(msg) : ""}`;
+  const backB = n > 1 ? `<button class="quiet" onclick="wStep(${n - 1})">← Geri</button>`
+    : `<button class="quiet" onclick="go('home')">← Çık (bilgilerin kaydedilir)</button>`;
+  let body = "";
+
+  if (n === 1) body = `
+    <h1>Bilgilerini kontrol et.</h1>
+    <p class="sub">Bunlar öğrenci kayıtlarından geldi — yazmana gerek yok.</p>
+    <div class="box info">${ME.user.name} · ${ME.user.no}<br>Bilgisayar Mühendisliği · ${a.staj_no}. staj</div>
+    <label>Telefon numaran</label><input id="telefon" type="text" placeholder="05xx xxx xx xx" value="${a.telefon || ""}">
+    <p class="hint">Komisyonun sana ulaşması gerekirse kullanılır.</p>
+    <button class="big" onclick="wSave(2,{telefon:$('telefon').value})">Devam et</button>${backB}`;
+
+  if (n === 2) body = `
+    <h1>Stajını ne zaman yapacaksın?</h1>
+    <label class="radio"><input type="radio" name="t" value="yaz" ${a.tur !== "donem" ? "checked" : ""}> Yaz tatilinde</label>
+    <label class="radio"><input type="radio" name="t" value="donem" ${a.tur === "donem" ? "checked" : ""}> Dönem içinde <span class="muted">(haftada en az 3 gün)</span></label>
+    <button class="big" onclick="wSave(3,{tur:document.querySelector('input[name=t]:checked').value})">Devam et</button>${backB}`;
+
+  if (n === 3) body = `
+    <h1>Staj yapacağın kurum</h1>
+    <label>Kurumun adı</label><input id="kadi" value="${a.kurum_adi || ""}" placeholder="Örnek Yazılım A.Ş.">
+    <label>Şehir</label><input id="ksehir" value="${a.kurum_sehir || ""}" placeholder="Balıkesir">
+    <label>Ne iş yapıyor?</label><input id="kfaal" value="${a.kurum_faaliyet || ""}" placeholder="Yazılım geliştirme">
+    <button class="big" onclick="wSave(4,{kurum_adi:$('kadi').value,kurum_sehir:$('ksehir').value,kurum_faaliyet:$('kfaal').value})">Devam et</button>${backB}`;
+
+  if (n === 4) body = `
+    <h1>Senden sorumlu mühendis kim?</h1>
+    <label>Adı soyadı</label><input id="mad" value="${a.muh_ad || ""}">
+    <label>Unvanı</label>
+    <select id="munvan" onchange="$('dk').style.display=this.value==='Bilmiyorum'?'block':'none'">
+      ${["Bilgisayar Mühendisi", "Yazılım Mühendisi", "İlgili alanda mühendis", "Bilmiyorum"]
+        .map(u => `<option ${a.muh_unvan === u ? "selected" : ""}>${u}</option>`).join("")}
+    </select>
+    <div id="dk" style="display:${a.muh_unvan === "Bilmiyorum" ? "block" : "none"}" class="box info">
+      Sorun değil — kuruma şunu sor:<br><i>“Staj süresince benden sorumlu olacak mühendisin adı ve unvanı nedir?”</i><br>
+      Cevabı alınca dönüp devam edersin; bilgilerin kaydedildi.</div>
+    <button class="big" onclick="wSave(5,{muh_ad:$('mad').value,muh_unvan:$('munvan').value})">Devam et</button>${backB}`;
+
+  if (n === 5) body = `
+    <h1>Staj tarihlerini seç.</h1>
+    <p class="sub">İş günü hesabını biz yaparız — sen sadece tarihleri seç.</p>
+    <label>Başlangıç</label><input id="d1" type="date" value="${a.start_date || ""}" onchange="dateCheck()">
+    <label>Bitiş</label><input id="d2" type="date" value="${a.end_date || ""}" onchange="dateCheck()">
+    <div id="dateRes">${a.start_date && a.end_date ? "" : ""}</div>
+    <label>İşletme staj ücreti ödeyecek mi?</label>
+    <select id="ucret">${[["hayir", "Hayır"], ["evet", "Evet"], ["bilmiyorum", "Bilmiyorum"]]
+      .map(([v, t]) => `<option value="${v}" ${a.ucret === v ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <p class="hint">“Evet” dersen ücret katkısı belgesi (EK-2) sonraki adımda listene eklenir.</p>
+    <button class="big" id="d5next" onclick="wSaveDates()">Devam et</button>${backB}`;
+
+  if (n === 6) {
+    const hasKabul = ME.documents.some(d => d.kind === "kabul");
+    body = `
+    <h1>Kabul belgesini yükle.</h1>
+    <p class="sub">Kuruma imzalattığın belge. İmza <b>ve</b> kaşe olduğundan emin ol.</p>
+    ${a.ucret === "evet" ? '<div class="box info">Ücret ödeneceği için <b>EK-2 (ücret katkısı) belgesi</b> de gerekiyor — pilot sürümde kabul belgesiyle birlikte tek dosyada yükleyebilirsin.</div>' : ""}
+    <div class="upload ${hasKabul ? "done" : ""}" id="up" onclick="pickFile('kabul')">
+      ${hasKabul ? "✓ Belgeni aldık · <u>değiştir</u>" : "Belgeyi buraya yükle: <u>dosya seç</u><br><span class='muted'>PDF veya fotoğraf · en fazla 10 MB</span>"}</div>
+    <button class="big" onclick="wStep(7)">Devam et</button>${backB}`;
+  }
+
+  if (n === 7) body = `
+    <h1>Son kontrol.</h1>
+    <div class="box info">
+      ${a.tur === "donem" ? "Dönem içi staj" : "Yaz stajı"} · ${a.kurum_adi || "—"}<br>
+      ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}<br>
+      Sorumlu: ${a.muh_ad || "—"}, ${a.muh_unvan || "—"}<br>
+      Kabul belgesi ${ME.documents.some(d => d.kind === "kabul") ? "✓ yüklendi" : "⚠ yüklenmedi"}
+      <p style="margin-top:8px"><button class="link" onclick="wStep(1)">Bir şeyi değiştir</button></p>
+    </div>
+    <button class="big" onclick="wSubmit()">Başvuruyu gönder</button>
+    <p class="after">Gönderince komisyon inceleyecek; inceleme başlayana kadar değişiklik yapabilirsin.</p>${backB}`;
+
+  el(head + body);
+  if (n === 5 && a.start_date && a.end_date) dateCheck();
+}
+
+async function wSave(nextStep, fields) {
+  try {
+    wizardApp = await api("/application", { method: "PATCH", json: { ...fields, wizard_step: nextStep } });
+    wizard();
+  } catch (e) { wizard(e.message); }
+}
+async function wStep(n) {
+  try { wizardApp = await api("/application", { method: "PATCH", json: { wizard_step: n } }); } catch {}
+  wizard();
+}
+
+let lastDateCheck = null;
+async function dateCheck() {
+  const s = $("d1").value, e = $("d2").value;
+  if (!s || !e) return;
+  lastDateCheck = await api("/application/check-dates", { method: "POST", json: { start: s, end: e } });
+  const r = lastDateCheck;
+  $("dateRes").innerHTML = r.ok
+    ? `<div class="box ok">✓ ${r.workdays} iş günü — kurala uygun.</div>`
+    : `<div class="box warn">${r.problems.join("<br>")}${r.suggestion ? `<br><br>
+        <button class="big" style="background:#b45309" onclick="applySuggestion()">${r.suggestion.field === "end" ? "Bitişi " + fmtDate(r.suggestion.value) + " yap (önerilen)" : "Başlangıcı " + fmtDate(r.suggestion.value) + " yap (önerilen)"}</button>` : ""}</div>`;
+  $("d5next").disabled = !r.ok;
+}
+function applySuggestion() {
+  const su = lastDateCheck.suggestion;
+  $(su.field === "end" ? "d2" : "d1").value = su.value;
+  dateCheck();
+}
+async function wSaveDates() {
+  if (!lastDateCheck || !lastDateCheck.ok) { dateCheck(); return; }
+  wSave(6, { start_date: $("d1").value, end_date: $("d2").value, ucret: $("ucret").value });
+}
+
+async function wSubmit() {
+  try {
+    await api("/application/submit", { method: "POST" });
+    await refresh();
+    el(`<div class="center" style="margin-top:30px"><div class="icon">✅</div></div>
+      <h1 class="center">Başvurun gönderildi.</h1>
+      <p class="sub center">Komisyon inceleyecek, sonucu bildirimle haber vereceğiz.<br><b>Şu an yapman gereken bir şey yok.</b></p>
+      <button class="big" onclick="go('home')">Tamam</button>`);
+  } catch (e) { wizard(e.message); }
+}
+
+/* ───────── Dosya yükleme ───────── */
+function pickFile(kind) {
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = ".pdf,.jpg,.jpeg,.png";
+  inp.onchange = async () => {
+    if (!inp.files[0]) return;
+    const fd = new FormData();
+    fd.append("file", inp.files[0]);
+    const box = $("up");
+    if (box) box.textContent = "Yükleniyor…";
+    try {
+      const r = await fetch("/api/upload/" + kind, { method: "POST", body: fd });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      await refresh();
+      if (kind === "kabul" && ME.stage === "review") {
+        el(`<div class="center" style="margin-top:30px"><div class="icon">✅</div></div>
+          <h1 class="center">Belgen komisyona gitti.</h1>
+          <p class="sub center">Sonuçlanınca haber vereceğiz. Şu an yapman gereken bir şey yok.</p>
+          <button class="big" onclick="go('home')">Tamam</button>`);
+      } else if (kind === "defter") {
+        el(`<div class="center" style="margin-top:30px"><div class="icon">📗</div></div>
+          <h1 class="center">Defterini aldık.</h1>
+          <p class="sub center">Unutma: sicil fişini kapalı zarfla bölüm sekreterliğine elden götürmen gerekiyor.</p>
+          <button class="big" onclick="go('home')">Tamam</button>`);
+      } else go(ME.stage === "draft" ? "wizard" : "home");
+    } catch (e) {
+      if (box) { box.innerHTML = "Belgeyi buraya yükle: <u>dosya seç</u>"; }
+      alert(e.message);
+    }
+  };
+  inp.click();
+}
+
+/* ───────── SGK / OBS / teslim ───────── */
+function sgkScreen() {
+  nav("home");
+  el(`${back}
+    <h1>Sigorta girişine böyle bakılır:</h1>
+    <div class="box info">
+      <b>1.</b> turkiye.gov.tr'ye gir (e-Devlet)<br>
+      <b>2.</b> Ara: <b>“SGK Tescil ve Hizmet Dökümü”</b><br>
+      <b>3.</b> Listede staj başlangıç tarihinle bir kayıt olmalı</div>
+    <button class="big" onclick="markSgk(true)">Kaydımı gördüm ✓</button>
+    <button class="quiet" onclick="markSgk(false)">Kaydımı göremiyorum</button>`);
+}
+async function markSgk(seen) {
+  const r = await api("/sgk", { method: "POST", json: { seen } });
+  await refresh();
+  if (r.reported) {
+    el(`<div class="center" style="margin-top:30px"><div class="icon">🙌</div></div>
+      <h1 class="center">Sorun değil — bölüme bildirdik.</h1>
+      <p class="sub center">Komisyon seninle iletişime geçecek.<br><b>Sigortan görünmeden staja başlama.</b></p>
+      <button class="big" onclick="go('home')">Tamam</button>`);
+  } else go("home");
+}
+async function markObs() { await api("/obs", { method: "POST" }); await refresh(); go("home"); }
+async function markSicil(v) { await api("/sicil", { method: "POST", json: { delivered: v } }); await refresh(); go("home"); }
+
+function deliverScreen() {
+  nav("home");
+  const items = ["Her staj günü için sayfa var (20 gün = 20 sayfa)",
+    "Bütün sayfalar imzalı ve kaşeli", "Kapak sayfası ekli",
+    "Vlog bağlantısı ve QR kod son sayfada", "PDF net okunuyor"];
+  el(`${back}
+    <h1>Defterini yüklemeden önce kontrol et.</h1>
+    <p class="sub">Eksik defterler geri döner — bu liste seni ondan kurtarır.</p>
+    ${items.map(t => `<label class="check"><input type="checkbox" onchange="chk()"> ${t}</label>`).join("")}
+    <button class="big" id="upBtn" disabled onclick="pickFile('defter')">Defteri seç ve gönder (PDF)</button>
+    <p class="after" id="upWhy">Listeyi tamamlayınca buton açılır.</p>
+    <div class="box warn"><b>Sicil fişi buraya yüklenmez.</b> İşyerinin <b>fotoğraflı</b> doldurduğu fişi kapalı zarfla bölüm sekreterliğine elden götür.<br><br>
+      <label class="check" style="border:0"><input type="checkbox" ${ME.application.sicil_delivered ? "checked" : ""}
+        onchange="api('/sicil',{method:'POST',json:{delivered:this.checked}})"> Zarfı teslim ettim</label></div>`);
+}
+function chk() {
+  const boxes = [...document.querySelectorAll("main .check input")].slice(0, 5);
+  const all = boxes.every(b => b.checked);
+  $("upBtn").disabled = !all;
+  $("upWhy").textContent = all ? "Hazırsın — gönderebilirsin." : "Listeyi tamamlayınca buton açılır.";
+}
+
+/* ───────── Belgelerim ───────── */
+function docsScreen() {
+  nav("docs");
+  const rows = [
+    ["📄 Günlük defter sayfası", "Her staj günü için bir sayfa doldurursun; işyerindeki mühendisin imzalar. Staj bitince hepsini tek PDF yapıp buradan yüklersin."],
+    ["📄 Defter kapağı", "Ad-soyad, kurum ve tarihleri doldurup defterin başına eklersin."],
+    ["🎬 Vlog rehberi", "Staj boyunca çekeceğin kısa videoların kuralları. Bağlantı ve QR kod defterin son sayfasına eklenir."],
+    ["✉️ Sicil fişi", "İşyerinin senin hakkında doldurduğu değerlendirme. <b>Fotoğraflı</b> doldurulmalı. <b>Sisteme yüklenmez</b> — kapalı zarfla bölüm sekreterliğine elden götürülür."],
+  ];
+  const mine = ME.documents.map(d =>
+    `<div class="qa open"><div class="q">✅ ${d.kind === "kabul" ? "Kabul belgen" : "Staj defterin"}</div>
+     <div class="a">${d.orig_name} · ${d.uploaded_at.slice(0, 10)} tarihinde yüklendi.</div></div>`).join("");
+  el(`<h1>Belgelerim</h1>
+    <p class="sub">Şu an ihtiyacın olanlar en üstte.</p>
+    ${mine}
+    ${rows.map(([q, a]) => `<div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${q}</div><div class="a">${a}</div></div>`).join("")}
+    <p class="hint" style="margin-top:14px">Form dosyaları (EK-1, EK-1A, EK-2) pilot sürümde bölüm sayfasından indirilir; canlı sürümde buradan inecek.</p>`);
+}
+
+/* ───────── Yardım ───────── */
+async function helpScreen() {
+  nav("help");
+  const faq = await api("/faq");
+  const myQs = await api("/questions");
+  const cats = [...new Set(faq.map(f => f.category))];
+  el(`<h1>Yardım</h1>
+    <input id="fq" placeholder="Sorunu yaz, ör: kaç gün staj yapmam gerekiyor?" oninput="faqSearch()">
+    <div id="fres"></div>
+    <h1 style="font-size:18px;margin-top:24px">Çok sorulanlar</h1>
+    ${faq.slice(0, 6).map(f => `<div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${f.q}</div><div class="a">${f.a}</div></div>`).join("")}
+    <p class="hint">Kategoriler: ${cats.join(" · ")}</p>
+    <div class="box info">Cevabını bulamadın mı? <button class="link" onclick="askScreen()">Komisyona sor</button></div>
+    ${myQs.length ? `<h1 style="font-size:18px;margin-top:24px">Sorularım</h1>` +
+      myQs.map(q => `<div class="qa ${q.answer ? "open" : ""}"><div class="q">${q.answer ? "✅" : "⏳"} ${q.text}</div>
+        <div class="a">${q.answer || "Henüz cevaplanmadı — cevap gelince bildirim alacaksın."}</div></div>`).join("") : ""}`);
+}
+async function faqSearch() {
+  const q = $("fq").value.trim();
+  if (q.length < 4) { $("fres").innerHTML = ""; return; }
+  const rows = await api("/faq?q=" + encodeURIComponent(q));
+  $("fres").innerHTML = rows.length
+    ? rows.map(f => `<div class="qa open"><div class="q">${f.q}</div><div class="a">${f.a}</div></div>`).join("")
+    : `<div class="box info">Buna uygun hazır cevap bulamadık. <button class="link" onclick="askScreen()">Soruyu komisyona gönder</button></div>`;
+}
+function askScreen() {
+  el(`${back}
+    <h1>Komisyona sor</h1>
+    <textarea id="qt" rows="3" placeholder="Sorunu buraya yaz…" oninput="askSim()"></textarea>
+    <div id="sim"></div>
+    <button class="big" id="send" disabled onclick="sendQ()">Soruyu gönder</button>`);
+}
+let simTimer = null;
+function askSim() {
+  const v = $("qt").value.trim();
+  $("send").disabled = v.length < 10;
+  clearTimeout(simTimer);
+  if (v.length < 6) { $("sim").innerHTML = ""; return; }
+  simTimer = setTimeout(async () => {
+    const rows = await api("/faq?q=" + encodeURIComponent(v.split(" ").slice(-3).join(" ")));
+    if (rows.length) $("sim").innerHTML = `<div class="box info"><b>Benzer sorular daha önce cevaplanmış:</b><br>
+      ${rows.slice(0, 3).map(f => `• ${f.q}`).join("<br>")}<br><span class="muted">Cevaplar “Çok sorulanlar” bölümünde.</span></div>`;
+    else $("sim").innerHTML = "";
+  }, 400);
+}
+async function sendQ() {
+  try {
+    await api("/questions", { method: "POST", json: { text: $("qt").value } });
+    el(`<div class="center" style="margin-top:30px"><div class="icon">📨</div></div>
+      <h1 class="center">Sorun komisyona iletildi.</h1>
+      <p class="sub center">Cevap gelince bildirim alacaksın.</p>
+      <button class="big" onclick="go('home')">Tamam</button>`);
+  } catch (e) { alert(e.message); }
+}
+
+/* ───────── Yönlendirme ───────── */
+const routes = { home, wizard, sgk: sgkScreen, deliver: deliverScreen, docs: docsScreen, help: helpScreen, accept: acceptScreen };
+async function go(name) {
+  try { await refresh(); } catch { return loginScreen(); }
+  (routes[name] || home)();
+}
+
+(async () => {
+  try { await refresh(); go("home"); } catch { loginScreen(); }
+})();
