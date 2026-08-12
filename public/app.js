@@ -62,9 +62,9 @@ function loginScreen(msg) {
       <p class="sub">Stajınla ilgili her şey burada.</p>
       ${msg ? errBox(msg) : ""}
       <label>Öğrenci numaran</label>
-      <input id="no" type="text" placeholder="20251001234" autocomplete="username">
+      <input id="no" type="text" inputmode="numeric" placeholder="11 haneli öğrenci numaran" autocomplete="username">
       <label>Şifren</label>
-      <input id="pw" type="password" autocomplete="current-password">
+      <input id="pw" type="password" placeholder="Şifreni yaz" autocomplete="current-password">
       <p class="hint">İlk kez mi giriyorsun? Şifre yerine TC kimlik numaranı yaz — sonra kendi şifreni oluşturacaksın.</p>
       <br><button class="big" onclick="doLogin()">Giriş yap</button>
       <p class="center"><button class="link" style="font-size:14px"
@@ -88,7 +88,7 @@ function setPassScreen(name, msg) {
       <p class="sub">Kimliğini doğruladık. Artık kendine bir şifre belirle — bundan sonra TC numaranla değil, bu şifreyle gireceksin.</p>
       ${msg ? errBox(msg) : ""}
       <label>Yeni şifren</label>
-      <input id="pw1" type="password" autocomplete="new-password">
+      <input id="pw1" type="password" placeholder="En az 8 karakter" autocomplete="new-password">
       <p class="hint">En az 8 karakter. Unutmayacağın ama tahmin edilemeyecek bir şey seç.</p>
       <br><button class="big" onclick="doSetPass()">Şifremi kaydet ve başla</button>
     </div>`);
@@ -294,9 +294,11 @@ async function wizard(msg) {
     <h1>Bilgilerini kontrol et.</h1>
     <p class="sub">Bunlar öğrenci kayıtlarından geldi — yazmana gerek yok.</p>
     <div class="box info">${ME.user.name} · ${ME.user.no}<br>Bilgisayar Mühendisliği · ${a.staj_no}. staj</div>
-    <label>Telefon numaran</label><input id="telefon" type="tel" inputmode="numeric" placeholder="05xx xxx xx xx" value="${a.telefon || ""}">
-    <p class="hint" id="telHint">Komisyonun sana ulaşması gerekirse kullanılır.</p>
-    <button class="big" onclick="wPhone()">Devam et</button>${backB}`;
+    <label>Telefon numaran</label>
+    <input id="telefon" type="tel" inputmode="numeric" placeholder="0555 123 45 67" value="${a.telefon || ""}" oninput="stepCheck(1)">
+    <p class="hint">Komisyonun sana ulaşması gerekirse kullanılır.</p>
+    <button class="big" id="nextBtn" disabled onclick="wPhone()">Devam et</button>
+    <p class="why" id="why"></p>${backB}`;
 
   if (n === 2) body = `
     <h1>Stajını ne zaman yapacaksın?</h1>
@@ -309,19 +311,24 @@ async function wizard(msg) {
 
   if (n === 3) body = `
     <h1>Staj yapacağın kurum</h1>
-    <label>Kurumun adı</label><input id="kadi" value="${a.kurum_adi || ""}" placeholder="Örnek Yazılım A.Ş.">
-    <label>Şehir</label><input id="ksehir" value="${a.kurum_sehir || ""}" placeholder="Balıkesir">
-    <label>Ne iş yapıyor?</label><input id="kfaal" value="${a.kurum_faaliyet || ""}" placeholder="Yazılım geliştirme">
+    <label>Kurumun adı</label>
+    <input id="kadi" value="${a.kurum_adi || ""}" placeholder="Şirketin tam adını yaz" oninput="stepCheck(3)">
+    <label>Hangi şehirde?</label>
+    <input id="ksehir" value="${a.kurum_sehir || ""}" placeholder="Balıkesir" oninput="stepCheck(3)">
+    <label>Ne iş yapıyor?</label>
+    <input id="kfaal" value="${a.kurum_faaliyet || ""}" placeholder="ör. web yazılımları geliştiriyor" oninput="stepCheck(3)">
     <label class="check" style="border:0;margin-top:14px"><input type="checkbox" id="kyurt" ${a.yurtdisi ? "checked" : ""}
       onchange="$('yurtInfo').style.display=this.checked?'block':'none'"> Kurum yurt dışında</label>
     <div id="yurtInfo" class="box warn" style="display:${a.yurtdisi ? "block" : "none"}">
       Yurt dışı stajında sigortanı üniversite yapamaz — <b>SGK'yı kendi imkânlarınla yaptırman gerekir.</b>
       Komisyon başvurunu buna göre değerlendirecek.</div>
-    <button class="big" onclick="wSave(4,{kurum_adi:$('kadi').value,kurum_sehir:$('ksehir').value,kurum_faaliyet:$('kfaal').value,yurtdisi:$('kyurt').checked?1:0})">Devam et</button>${backB}`;
+    <button class="big" id="nextBtn" disabled onclick="wSave(4,{kurum_adi:$('kadi').value.trim(),kurum_sehir:$('ksehir').value.trim(),kurum_faaliyet:$('kfaal').value.trim(),yurtdisi:$('kyurt').checked?1:0})">Devam et</button>
+    <p class="why" id="why"></p>${backB}`;
 
   if (n === 4) body = `
     <h1>Senden sorumlu mühendis kim?</h1>
-    <label>Adı soyadı</label><input id="mad" value="${a.muh_ad || ""}">
+    <label>Adı soyadı</label>
+    <input id="mad" value="${a.muh_ad || ""}" placeholder="Mühendisin adı ve soyadı" oninput="stepCheck(4)">
     <label>Unvanı</label>
     <select id="munvan" onchange="$('dk').style.display=this.value==='Bilmiyorum'?'block':'none'">
       ${["Bilgisayar Mühendisi", "Yazılım Mühendisi", "İlgili alanda mühendis", "Bilmiyorum"]
@@ -329,8 +336,9 @@ async function wizard(msg) {
     </select>
     <div id="dk" style="display:${a.muh_unvan === "Bilmiyorum" ? "block" : "none"}" class="box info">
       Sorun değil — kuruma şunu sor:<br><i>“Staj süresince benden sorumlu olacak mühendisin adı ve unvanı nedir?”</i><br>
-      Cevabı alınca dönüp devam edersin; bilgilerin kaydedildi.</div>
-    <button class="big" onclick="wSave(5,{muh_ad:$('mad').value,muh_unvan:$('munvan').value})">Devam et</button>${backB}`;
+      Cevabı alınca dönüp devam edersin; bilgilerin kaydedildi. <b>Unvan öğrenilmeden başvuru gönderilemez.</b></div>
+    <button class="big" id="nextBtn" disabled onclick="wSave(5,{muh_ad:$('mad').value.trim(),muh_unvan:$('munvan').value})">Devam et</button>
+    <p class="why" id="why"></p>${backB}`;
 
   if (n === 5) {
     const donem = a.tur === "donem";
@@ -362,7 +370,8 @@ async function wizard(msg) {
       .map(([v, t]) => `<option value="${v}" ${a.ucret === v ? "selected" : ""}>${t}</option>`).join("")}</select>
     <p class="hint">“Evet” dersen ücret katkısı formu (EK-2) sonraki adımda listene eklenir.
     Kamu kurumunda staj yapıyorsan EK-2 gerekmez.</p>
-    <button class="big" id="d5next" onclick="wSaveDates()">Devam et</button>${backB}`;
+    <button class="big" id="d5next" disabled onclick="wSaveDates()">Devam et</button>
+    <p class="why" id="why">${a.start_date ? "" : "Devam etmek için başlangıç tarihini seç."}</p>${backB}`;
   }
 
   if (n === 6) {
@@ -373,32 +382,58 @@ async function wizard(msg) {
     ${a.ucret === "evet" ? '<div class="box info">Ücret ödeneceği için <b>EK-2 (ücret katkısı) belgesi</b> de gerekiyor — pilot sürümde kabul belgesiyle birlikte tek dosyada yükleyebilirsin.</div>' : ""}
     <div class="upload ${hasKabul ? "done" : ""}" id="up" onclick="pickFile('kabul')">
       ${hasKabul ? "✓ Belgeni aldık · <u>değiştir</u>" : "Belgeyi buraya yükle: <u>dosya seç</u><br><span class='muted'>PDF veya fotoğraf · en fazla 10 MB</span>"}</div>
-    <button class="big" onclick="wStep(7)">Devam et</button>${backB}`;
+    <button class="big" id="nextBtn" ${hasKabul ? "" : "disabled"} onclick="wStep(7)">Devam et</button>
+    <p class="why" id="why">${hasKabul ? "" : "Devam etmek için imzalı ve kaşeli kabul belgeni yüklemelisin."}</p>${backB}`;
   }
 
-  if (n === 7) body = `
+  if (n === 7) {
+    // Son adım asla hata vermez: eksikler burada listelenir, buton eksik varken kapalıdır.
+    const eksik = [];
+    if (!ME.documents.some(d => d.kind === "kabul")) eksik.push([6, "Kabul belgesi yüklenmedi"]);
+    if (a.muh_unvan === "Bilmiyorum") eksik.push([4, "Sorumlu mühendisin unvanı seçilmedi"]);
+    if (!a.start_date || !a.end_date) eksik.push([5, "Staj tarihleri seçilmedi"]);
+    if (!a.kurum_adi) eksik.push([3, "Kurum bilgisi eksik"]);
+    body = `
     <h1>Son kontrol.</h1>
     <div class="box info">
       ${a.tur === "donem" ? "Dönem içi staj" : "Yaz stajı"} · ${a.kurum_adi || "—"}<br>
-      ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}<br>
-      Sorumlu: ${a.muh_ad || "—"}, ${a.muh_unvan === "Bilmiyorum" ? '⚠ unvanı öğrenip <button class="link" onclick="wStep(4)">Adım 4\'te güncelle</button>' : (a.muh_unvan || "—")}<br>
-      Kabul belgesi ${ME.documents.some(d => d.kind === "kabul") ? "✓ yüklendi" : "⚠ yüklenmedi"}
+      ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}${ME.progress ? ` (${ME.progress.total} iş günü ✓)` : ""}<br>
+      Sorumlu: ${a.muh_ad || "—"}, ${a.muh_unvan || "—"}<br>
+      Kabul belgesi ${ME.documents.some(d => d.kind === "kabul") ? "✓ yüklendi" : "— yüklenmedi"}
       <p style="margin-top:8px"><button class="link" onclick="wStep(1)">Bir şeyi değiştir</button></p>
     </div>
-    <button class="big" onclick="wSubmit()">Başvuruyu gönder</button>
-    <p class="after">Gönderince komisyon inceleyecek; inceleme başlayana kadar değişiklik yapabilirsin.</p>${backB}`;
+    ${eksik.length ? `<div class="box warn"><b>Göndermeden önce şunlar tamamlanmalı:</b><br>
+      ${eksik.map(([st, t]) => `• ${t} — <button class="link" onclick="wStep(${st})">Adım ${st}'e git</button>`).join("<br>")}</div>` : ""}
+    <button class="big" ${eksik.length ? "disabled" : ""} onclick="wSubmit()">Başvuruyu gönder</button>
+    <p class="after">${eksik.length ? "Eksikler tamamlanınca buton açılır." : "Gönderince komisyon inceleyecek; inceleme başlayana kadar değişiklik yapabilirsin."}</p>${backB}`;
+  }
 
   el(head + body);
+  if (STEP_REQ[n]) stepCheck(n);
   if (n === 5 && a.start_date) (a.end_date ? dateCheck() : onDatesInput());
 }
 
-// Telefon: sert hata yerine yumuşak doğrulama — rakam dışını temizle, uzunluğa bak.
+/* Adım kilidi: gerekli alanlar dolana kadar "Devam et" kapalıdır ve nedeni
+   butonun altında yazar. Böylece öğrenci hatalı/eksik bir adımı geçemez —
+   sonda hata mesajı görmesi imkânsızdır. */
+const telOk = (v) => { const r = v.replace(/\D/g, ""); return r.length >= 10 && r.length <= 11 && r.startsWith("0"); };
+const STEP_REQ = {
+  1: [["telefon", telOk, "0 ile başlayan 11 haneli telefon numaranı yaz"]],
+  3: [["kadi", v => v.trim().length >= 3, "kurumun adını yaz"],
+      ["ksehir", v => v.trim().length >= 2, "şehri yaz"],
+      ["kfaal", v => v.trim().length >= 3, "kurumun ne iş yaptığını yaz"]],
+  4: [["mad", v => v.trim().length >= 5 && v.trim().includes(" "), "mühendisin adını ve soyadını yaz"]],
+};
+function stepCheck(n) {
+  const btn = $("nextBtn"), why = $("why");
+  if (!btn) return;
+  const eksik = (STEP_REQ[n] || []).filter(([id, ok]) => !ok($(id)?.value || "")).map(([, , msg]) => msg);
+  btn.disabled = eksik.length > 0;
+  why.textContent = eksik.length ? "Devam etmek için: " + eksik.join(" · ") : "";
+}
+
 function wPhone() {
   const raw = $("telefon").value.replace(/\D/g, "");
-  if (raw.length < 10 || raw.length > 11 || !raw.startsWith("0")) {
-    $("telHint").innerHTML = '<span style="color:#b45309">Numara eksik görünüyor — 0 ile başlayan 11 haneli numaranı yaz (ör. 0555 123 45 67).</span>';
-    return;
-  }
   wSave(2, { telefon: raw.replace(/(\d{4})(\d{3})(\d{2})(\d{2})/, "$1 $2 $3 $4") });
 }
 
@@ -465,6 +500,7 @@ async function dateCheck(autoFilled) {
         : "Başlangıcı " + fmtDate(r.suggestion.value) + " yap (önerilen)"}</button>` : ""}</div>`;
   }
   $("d5next").disabled = !r.ok;
+  if ($("why")) $("why").textContent = "";
 }
 function applySuggestion() {
   const su = lastDateCheck.suggestion;
@@ -517,8 +553,12 @@ function pickFile(kind) {
           <button class="big" onclick="go('home')">Tamam</button>`);
       } else go(ME.stage === "draft" ? "wizard" : "home");
     } catch (e) {
-      if (box) { box.innerHTML = "Belgeyi buraya yükle: <u>dosya seç</u>"; }
-      alert(e.message);
+      // Hata ayrı pencerede değil, yükleme kutusunun içinde ve çözüm diliyle gösterilir.
+      if (box) {
+        box.classList.remove("done");
+        box.style.borderColor = "#b45309"; box.style.color = "#92400e"; box.style.background = "#fef9e7";
+        box.innerHTML = `⚠ ${e.message}<br><u>Tekrar dene</u>`;
+      } else alert(e.message);
     }
   };
   inp.click();
