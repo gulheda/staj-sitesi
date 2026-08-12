@@ -246,8 +246,7 @@ function acceptDoc() {
       • Kurum yetkilisi <b>imzalayacak</b> ve <b>kaşeleyecek</b><br>
       • İkisi de yoksa komisyon belgeyi geri gönderir</div>
     <a class="quiet" style="display:block;text-align:center;text-decoration:none"
-       href="/belgeler/ek1-zorunlu-staj-kabul-formu-yaz.pdf" download>Belgeyi indir (PDF)</a>
-    ${tur === "donem" ? '<p class="hint">Not: Dönem içi sürüm (EK-1A) yakında eklenecek; şimdilik yaz formu üzerinden ilerleyebilirsin.</p>' : ""}
+       href="/belgeler/${tur === "donem" ? "ek1a-zorunlu-staj-kabul-formu-donem-ici.pdf" : "ek1-zorunlu-staj-kabul-formu-yaz.pdf"}" download>Belgeyi indir (PDF)</a>
     <div class="box warn">⏰ <b>Önemli:</b> İmzalı formun staj başlangıcından en az <b>20 gün önce</b> teslim edilmesi gerekiyor — tarih seçerken sistem bunu senin için kontrol edecek.</div>
     <button class="big" onclick="startApplication('${tur}')">İmzalattım, başvuruya geç →</button>`);
 }
@@ -579,8 +578,27 @@ const BELGELER = {
       doldurur: "Üst kısmı sen, işletme bilgilerini kurum.", imzalar: "İşletme yetkilisi.",
       kase: "<b>Evet</b> — işletme kaşesi zorunlu.",
       nezaman: "Staj başlangıcından <b>en az 20 gün önce</b> (başvuruda yükleyeceksin).",
-      nereye: "Bu sisteme yüklenir; elden teslim gerekmez.",
+      nereye: "Bu sisteme yüklenir; elden teslim gerekmez. Yaz stajı için EK-1, dönem içi için EK-1A kullanılır — sistem staj türüne göre doğrusunu verir.",
       indir: "/belgeler/ek1-zorunlu-staj-kabul-formu-yaz.pdf" },
+    { icon: "📄", ad: "Kabul belgesi — dönem içi sürüm", resmi: "EK-1A",
+      nedir: "Dönem içinde staj yapacaklar için kabul formu; içeriği EK-1 ile aynıdır.",
+      doldurur: "Üst kısmı sen, işletme bilgilerini kurum.", imzalar: "İşletme yetkilisi.",
+      kase: "<b>Evet</b> — işletme kaşesi zorunlu.",
+      nezaman: "Staj başlangıcından <b>en az 20 gün önce</b>.",
+      nereye: "Bu sisteme yüklenir.",
+      indir: "/belgeler/ek1a-zorunlu-staj-kabul-formu-donem-ici.pdf" },
+    { icon: "📊", ad: "Ücret katkısı başvuru listesi",
+      nedir: "Staj ücreti alacak öğrenciler için İşsizlik Fonu katkısı başvurusunda kullanılan bilgi tablosu (Excel).",
+      neden: "EK-2 formuyla birlikte, devlet katkısının bağlanması için gerekir. Kamu kurumunda staj yapanlar doldurmaz.",
+      doldurur: "Kendi satırını sen doldurursun.",
+      nezaman: "Yalnızca 'ücret ödenecek' dediysen; başvuruyla birlikte.", nereye: "Bu sisteme yüklenir.",
+      indir: "/belgeler/staj-ucreti-fon-katkisi-basvuru-evraki.xlsx" },
+    { icon: "📊", ad: "Öğrenci bilgi listesi", resmi: "EK-3",
+      nedir: "Fakültenin SGK girişlerinde kullandığı öğrenci bilgi tablosu (Excel).",
+      neden: "Sigorta girişinin doğru bilgilerle yapılması için gerekir. Önemli: 1. stajın SGK çıkışı yapılmadan sonraki staj için yeni giriş yapılamaz.",
+      doldurur: "Kendi satırını sen doldurursun (ad, TC, öğrenci no, telefon, doğum tarihi…).",
+      nezaman: "Başvuru sırasında.", nereye: "Bu sisteme yüklenir (bölüm toplu listeye ekler).",
+      indir: "/belgeler/ek3-ogrenci-bilgi-listesi.xlsx" },
     { icon: "📄", ad: "Ücret katkısı bilgi formu", resmi: "EK-2",
       nedir: "İşletme sana staj ücreti ödeyecekse devlet katkısı için gereken form. <b>Kamu kurumlarında staj yapanlar için gerekmez.</b>",
       neden: "Ödenen ücretin bir kısmı İşsizlik Fonu'ndan devlet katkısı olarak karşılanır (20'den az personelli işletmede 2/3'ü, 20 ve üzerinde 1/3'ü).",
@@ -607,8 +625,10 @@ const BELGELER = {
       nereye: "Staj bitince hepsi tek PDF olarak bu sisteme yüklenir.",
       indir: "/belgeler/staj-defteri-sayfalari.docx" },
     { icon: "📄", ad: "Staj defteri kapağı",
-      nedir: "Ad-soyad, kurum ve tarih bilgilerini taşıyan ilk sayfa.",
-      doldurur: "Sen.", nezaman: "Defteri birleştirirken en başa eklenir.", nereye: "Defter PDF'inin ilk sayfası olur." },
+      nedir: "Ad-soyad, kurum, teslim tarihi ve imza alanlarını taşıyan ilk sayfa.",
+      doldurur: "Sen.", imzalar: "Sen (öğrenci imzası alanı vardır).",
+      nezaman: "Defteri birleştirirken en başa eklenir.", nereye: "Defter PDF'inin ilk sayfası olur.",
+      indir: "/belgeler/staj-defteri-kapak.docx" },
     { icon: "🎬", ad: "Vlog",
       nedir: "Staj boyunca çektiğin kısa videolar.",
       neden: "Staj deneyimini belgelemek için bölüm gereksinimidir.",
@@ -622,11 +642,13 @@ const BELGELER = {
       kase: "Evet.", nezaman: "Staj bittikten sonra, ilan edilen son tarihe kadar.",
       nereye: "Bu sisteme PDF olarak yüklenir — teslim ekranı seni kontrol listesiyle yönlendirir." },
     { icon: "✉️", ad: "Staj sicil fişi",
-      nedir: "İşyerinin senin hakkında doldurduğu değerlendirme formu.",
-      neden: "Staj notunun bir bileşenidir.",
-      doldurur: "İşyeri — <b>fotoğraflı</b> olmalı.", imzalar: "İşyeri yetkilisi.", kase: "Evet, zarf da kaşeli olmalı.",
-      nezaman: "Stajın son günlerinde işyerine hatırlat.",
-      nereye: "<b>Bu sisteme yüklenmez.</b> Kapalı ve kaşeli zarf içinde bölüm sekreterliğine <b>elden</b> teslim edilir." },
+      nedir: "İşyerindeki amirinin seni değerlendirdiği <b>gizli</b> form. Beş konuda A(Pekiyi)–D(Başarısız) notu verir: devam durumu, sorumluluk duygusu, işi vaktinde ve tam yapma, grup çalışmasına yatkınlık, kendini geliştirme isteği.",
+      neden: "Komisyon staj gününün kabul/red kararında bu değerlendirmeyi kullanır.",
+      doldurur: "Üst bilgileri sen, değerlendirmeyi işyeri amirin — <b>fotoğraflı</b> olmalı.",
+      imzalar: "Amirin (kaşe ve imza).", kase: "Evet, zarf da kaşeli olmalı.",
+      nezaman: "Stajın son günlerinde işyerine hatırlat; boş formu sen götürürsün.",
+      nereye: "<b>Bu sisteme yüklenmez.</b> Kapalı ve kaşeli zarf içinde bölüm sekreterliğine <b>elden</b> teslim edilir.",
+      indir: "/belgeler/staj-sicil-fisi.docx" },
   ],
 };
 
