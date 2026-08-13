@@ -117,6 +117,30 @@ function deriveStage(appRow) {
 const currentApp = (userId) =>
   db.prepare("SELECT * FROM applications WHERE user_id=? ORDER BY id DESC LIMIT 1").get(userId);
 
+// 3.-4. sınıf iki stajı aynı dönemde yapabildiği için öğrencinin birden çok
+// başvurusu olabilir; istekler hangi başvuruyu hedeflediğini app_id ile söyler.
+function getApp(req) {
+  const id = +(req.body?.app_id || req.query.app || 0);
+  if (id) {
+    const a = db.prepare("SELECT * FROM applications WHERE id=? AND user_id=?").get(id, req.user.id);
+    if (a) return a;
+  }
+  return currentApp(req.user.id);
+}
+const activeApps = (userId) =>
+  db.prepare("SELECT * FROM applications WHERE user_id=? AND status!='rejected' ORDER BY staj_no").all(userId);
+
+// İki stajın tarihleri çakışamaz (SGK tek giriş kuralı gereği).
+function overlapProblem(userId, excludeId, s, e) {
+  if (!s || !e) return null;
+  for (const o of activeApps(userId)) {
+    if (o.id === excludeId || !o.start_date || !o.end_date) continue;
+    if (s <= o.end_date && e >= o.start_date)
+      return `Bu tarihler ${o.staj_no}. stajının tarihleriyle çakışıyor (${trDate(o.start_date)} – ${trDate(o.end_date)}). İki staj aynı anda yapılamaz — farklı bir aralık seç.`;
+  }
+  return null;
+}
+
 // ─────────── Kimlik ───────────
 app.post("/api/login", (req, res) => {
   const { no, pass } = req.body || {};
@@ -159,7 +183,10 @@ app.post("/api/logout", (req, res) => {
 
 // ─────────── Öğrenci durumu ───────────
 app.get("/api/me", auth(), (req, res) => {
-  const appRow = currentApp(req.user.id);
+  const apps = db.prepare("SELECT * FROM applications WHERE user_id=? ORDER BY staj_no").all(req.user.id);
+  let appRow = req.query.app ? apps.find(a => a.id === +req.query.app) : null;
+  if (!appRow && apps.length)
+    appRow = apps.reduce((m, a) => ((a.updated_at || "") > (m.updated_at || "") ? a : m), apps[0]);
   const docs = appRow
     ? db.prepare("SELECT id, kind, orig_name, uploaded_at FROM documents WHERE application_id=?").all(appRow.id)
     : [];
@@ -175,9 +202,10 @@ app.get("/api/me", auth(), (req, res) => {
       progress.done = countWorkdays(appRow.start_date, today() <= appRow.end_date ? today() : appRow.end_date, o);
   }
   res.json({
-    user: { name: req.user.name, no: req.user.ogrenci_no, role: req.user.role },
+    user: { name: req.user.name, no: req.user.ogrenci_no, role: req.user.role, sinif: req.user.sinif ?? 3 },
     stage: deriveStage(appRow),
     application: appRow || null,
+    applications: apps.map(a => ({ id: a.id, staj_no: a.staj_no, status: a.status, stage: deriveStage(a) })),
     documents: docs,
     notifications,
     progress,
@@ -187,22 +215,25 @@ app.get("/api/me", auth(), (req, res) => {
 
 // ─────────── Başvuru sihirbazı (otomatik kayıt) ───────────
 app.post("/api/application", auth(), (req, res) => {
-  let appRow = currentApp(req.user.id);
-  // Yeni başvuru: hiç yoksa, reddedildiyse veya önceki staj kabul edildiyse
-  // (2. staj) açılabilir. Taslak/düzeltme varsa mevcut olan döner.
-  if (appRow && !["draft", "fix", "rejected", "accepted"].includes(appRow.status))
-    return res.status(400).json({ error: "Aktif bir başvurun zaten var." });
-  if (!appRow || ["rejected", "accepted"].includes(appRow.status)) {
-    const stajNo = db.prepare(
-      "SELECT COUNT(*) c FROM applications WHERE user_id=? AND status='accepted'").get(req.user.id).c + 1;
-    const r = db.prepare("INSERT INTO applications (user_id, staj_no) VALUES (?,?)").run(req.user.id, stajNo);
-    appRow = db.prepare("SELECT * FROM applications WHERE id=?").get(r.lastInsertRowid);
+  // Sınıf kuralı: 2. sınıf tek staj başvurusu yapabilir; 3.-4. sınıf iki
+  // stajı aynı dönemde yürütebilir (aynı anda iki başvuru).
+  const apps = activeApps(req.user.id);
+  const sinif = req.user.sinif ?? 3;
+  const limit = sinif >= 3 ? 2 : 1;
+  if (apps.length >= limit) {
+    return res.status(400).json({
+      error: sinif >= 3
+        ? "Toplam iki staj hakkın var ve ikisi de açılmış durumda."
+        : "2. sınıf öğrencileri aynı anda tek staj başvurusu yapabilir. İkinci stajını 3. sınıfta açabilirsin.",
+    });
   }
-  res.json(appRow);
+  const stajNo = apps.length + 1;
+  const r = db.prepare("INSERT INTO applications (user_id, staj_no) VALUES (?,?)").run(req.user.id, stajNo);
+  res.json(db.prepare("SELECT * FROM applications WHERE id=?").get(r.lastInsertRowid));
 });
 
 app.patch("/api/application", auth(), (req, res) => {
-  const appRow = currentApp(req.user.id);
+  const appRow = getApp(req);
   if (!appRow || appRow.status !== "draft")
     return res.status(400).json({ error: "Düzenlenebilir bir taslak başvurun yok." });
   const allowed = ["wizard_step", "tur", "telefon", "kurum_adi", "kurum_sehir", "kurum_faaliyet",
@@ -220,12 +251,16 @@ app.post("/api/application/check-dates", auth(), (req, res) => {
   const days = Array.isArray(req.body.days) && req.body.days.length
     ? req.body.days.map(Number).filter(n => n >= 1 && n <= 5) : null;
   const allowedDays = req.body.tur === "donem" ? (days || []) : null;
-  res.json(checkDates(req.body.start, req.body.end,
-    { allowedDays, saturday: !!req.body.saturday, minStart: minStartDate() }));
+  const out = checkDates(req.body.start, req.body.end,
+    { allowedDays, saturday: !!req.body.saturday, minStart: minStartDate() });
+  // Diğer stajla tarih çakışması: kural ihlali oluşmadan burada yakalanır.
+  const ov = overlapProblem(req.user.id, +(req.body.app_id || 0), req.body.start, req.body.end);
+  if (ov) { out.ok = false; out.problems.push(ov); out.suggestion = null; }
+  res.json(out);
 });
 
 app.post("/api/application/submit", auth(), (req, res) => {
-  const appRow = currentApp(req.user.id);
+  const appRow = getApp(req);
   if (!appRow || appRow.status !== "draft") return res.status(400).json({ error: "Gönderilecek taslak yok." });
   const missing = [];
   if (!appRow.tur) missing.push("staj türü");
@@ -238,6 +273,8 @@ app.post("/api/application/submit", auth(), (req, res) => {
   const dateCheck = checkDates(appRow.start_date, appRow.end_date,
     { ...dateOptsOf(appRow), minStart: minStartDate() });
   if (!dateCheck.ok) missing.push("geçerli staj tarihleri");
+  const ov = overlapProblem(req.user.id, appRow.id, appRow.start_date, appRow.end_date);
+  if (ov) return res.status(400).json({ error: ov });
   const hasKabul = db.prepare(
     "SELECT COUNT(*) c FROM documents WHERE application_id=? AND kind='kabul'").get(appRow.id).c > 0;
   if (!hasKabul) missing.push("kabul belgesi (yüklenmemiş)");
@@ -263,7 +300,7 @@ app.post("/api/upload/:kind", auth(), (req, res) => {
     const kind = req.params.kind;
     if (!["kabul", "defter"].includes(kind)) return res.status(400).json({ error: "Bilinmeyen belge türü." });
     if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi." });
-    const appRow = currentApp(req.user.id);
+    const appRow = getApp(req);
     if (!appRow) return res.status(400).json({ error: "Önce başvuru oluşturmalısın." });
 
     db.prepare("INSERT INTO documents (application_id, kind, filename, orig_name) VALUES (?,?,?,?)")
@@ -286,7 +323,7 @@ app.post("/api/upload/:kind", auth(), (req, res) => {
 
 // ─────────── Aşama işaretleri ───────────
 app.post("/api/sgk", auth(), (req, res) => {
-  const appRow = currentApp(req.user.id);
+  const appRow = getApp(req);
   if (!appRow || appRow.status !== "approved") return res.status(400).json({ error: "Bu adım şu an aktif değil." });
   if (req.body.seen) {
     db.prepare("UPDATE applications SET sgk_checked=1 WHERE id=?").run(appRow.id);
@@ -299,14 +336,14 @@ app.post("/api/sgk", auth(), (req, res) => {
 });
 
 app.post("/api/obs", auth(), (req, res) => {
-  const appRow = currentApp(req.user.id);
+  const appRow = getApp(req);
   if (!appRow || !appRow.sgk_checked) return res.status(400).json({ error: "Bu adım şu an aktif değil." });
   db.prepare("UPDATE applications SET obs_done=1 WHERE id=?").run(appRow.id);
   res.json({ ok: true });
 });
 
 app.post("/api/sicil", auth(), (req, res) => {
-  const appRow = currentApp(req.user.id);
+  const appRow = getApp(req);
   if (!appRow) return res.status(400).json({ error: "Başvuru bulunamadı." });
   db.prepare("UPDATE applications SET sicil_delivered=? WHERE id=?").run(req.body.delivered ? 1 : 0, appRow.id);
   res.json({ ok: true });
@@ -424,14 +461,16 @@ app.post("/api/admin/students", auth("admin"), (req, res) => {
   if (!lines.length) return res.status(400).json({ error: "Eklenecek satır bulunamadı." });
   let added = 0, skipped = 0;
   const errors = [];
-  const ins = db.prepare("INSERT INTO users (ogrenci_no, tc, name, email, password_hash, role) VALUES (?,?,?,?,NULL,'student')");
+  const ins = db.prepare("INSERT INTO users (ogrenci_no, tc, name, email, password_hash, role, sinif) VALUES (?,?,?,?,NULL,'student',?)");
   lines.forEach((line, i) => {
-    const [no, tc, ad, ep] = line.split(";").map(s => (s || "").trim());
+    const [no, tc, ad, ep, snf] = line.split(";").map(s => (s || "").trim());
     if (!/^\d{6,12}$/.test(no || "")) { errors.push(`${i + 1}. satır: öğrenci no hatalı`); return; }
     if (!/^\d{11}$/.test(tc || "")) { errors.push(`${i + 1}. satır: TC 11 hane olmalı`); return; }
     if (!ad || ad.length < 5) { errors.push(`${i + 1}. satır: ad soyad eksik`); return; }
+    const sinif = snf ? +snf : 3;
+    if (![2, 3, 4].includes(sinif)) { errors.push(`${i + 1}. satır: sınıf 2, 3 veya 4 olmalı`); return; }
     if (db.prepare("SELECT id FROM users WHERE ogrenci_no=?").get(no)) { skipped++; return; }
-    ins.run(no, tc, ad, ep || null);
+    ins.run(no, tc, ad, ep || null, sinif);
     added++;
   });
   res.json({ added, skipped, errors });

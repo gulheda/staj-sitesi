@@ -161,8 +161,8 @@ async function load() {
     <div class="card" id="stuCard">
       <div class="meta" id="stuStats">yükleniyor…</div>
       <p style="margin:8px 0 4px;font-size:14px">Yeni öğrencileri toplu ekle — her satıra bir öğrenci:</p>
-      <div class="meta">biçim: <code>öğrenciNo;TCkimlikNo;Ad Soyad;eposta</code> (e-posta isteğe bağlı)</div>
-      <textarea id="stuLines" rows="4" placeholder="202512345678;12345678901;Ali Veli;ali@ogr.balikesir.edu.tr"></textarea>
+      <div class="meta">biçim: <code>öğrenciNo;TCkimlikNo;Ad Soyad;eposta;sınıf</code> (e-posta ve sınıf isteğe bağlı; sınıf 2-4, boşsa 3 kabul edilir — 2. sınıf tek staj başvurusu yapabilir)</div>
+      <textarea id="stuLines" rows="4" placeholder="202512345678;12345678901;Ali Veli;ali@ogr.balikesir.edu.tr;3"></textarea>
       <button class="ok" onclick="addStudents()">Öğrencileri ekle</button>
       <div class="meta" id="stuRes"></div>
       <div class="meta" style="margin-top:6px">Eklenen öğrenci ilk girişini <b>öğrenci no + TC</b> ile yapar ve kendi şifresini oluşturur.</div>

@@ -51,7 +51,12 @@ const errBox = (m) => `<div class="box err">${m}</div>`;
 const fmtDate = (s) => s ? new Date(s + "T12:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "";
 const daysTo = (s) => Math.ceil((new Date(s) - new Date(ME.today)) / 86400000);
 
-async function refresh() { ME = await api("/me"); }
+let selApp = null; // seçili staj başvurusunun id'si (3.-4. sınıfta iki başvuru olabilir)
+async function refresh() {
+  ME = await api("/me" + (selApp ? "?app=" + selApp : ""));
+  selApp = ME.application?.id || null;
+}
+function switchStaj(id) { selApp = id; go("home"); }
 
 /* ───────── Giriş ───────── */
 function loginScreen(msg) {
@@ -226,7 +231,7 @@ function home() {
   if (a && !["draft", "noplace"].includes(s)) {
     const gunAd = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum" };
     const gunler = (a.calisma_gunleri || "").split(",").filter(Boolean).map(g => gunAd[g]).join("-");
-    side += `<div class="sidecard"><h4>Başvurun</h4>
+    side += `<div class="sidecard"><h4>${ME.applications.length > 1 ? a.staj_no + ". staj başvurun" : "Başvurun"}</h4>
       <div style="font-size:14px;line-height:1.7">
         ${a.tur === "donem" ? `Dönem içi staj${gunler ? ` (${gunler})` : ""}` : "Yaz stajı"} · ${a.staj_no}. staj<br>
         <b>${a.kurum_adi || "—"}</b>${a.kurum_sehir ? ", " + a.kurum_sehir : ""}<br>
@@ -243,11 +248,32 @@ function home() {
         ${ME.notifications.slice(0, 4).map(n => `<div class="notif" style="opacity:${n.seen ? ".7" : "1"};font-size:13.5px">
           ${n.text} <span class="muted">· ${n.created_at.slice(0, 10)}</span></div>`).join("")}</div>` : "";
 
+  // Birden çok başvuru varsa üstte staj seçici; tek başvuruda görünmez.
+  const KISA = { draft: "taslak", review: "incelemede", fix: "düzeltme bekliyor", sgk: "SGK kontrolü",
+    obs: "OBS kaydı", ready: "staja hazır", during: "devam ediyor", deliver: "teslim zamanı",
+    evaluating: "değerlendirmede", fix_defter: "defter düzeltmesi", accepted: "kabul edildi ✓", rejected: "reddedildi" };
+  const tabs = ME.applications.length > 1
+    ? `<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+        ${ME.applications.map(x => `<button class="${x.id === a?.id ? "big" : "quiet"}"
+          style="width:auto;max-width:none;padding:8px 18px;font-size:15px;margin:0"
+          onclick="switchStaj(${x.id})">${x.staj_no}. Staj · ${KISA[x.stage] || x.status}</button>`).join("")}
+       </div>` : "";
+
+  // 3.-4. sınıf: tek başvurusu varken ikincisini aynı dönemde açabilir.
+  if ((ME.user.sinif ?? 3) >= 3 && ME.applications.filter(x => x.status !== "rejected").length === 1 && a && s !== "noplace") {
+    side += `<div class="sidecard"><h4>İkinci staj</h4>
+      <p style="font-size:13.5px;color:#4b5563;margin-bottom:8px">3. ve 4. sınıflar iki stajı aynı dönemde
+      yapabilir. İkinci başvurunu şimdiden açabilirsin — tarihleri çakışmadığı sürece iki staj ayrı ayrı ilerler.</p>
+      <button class="quiet" style="font-size:14px;padding:9px" onclick="go('accept')">2. staj başvurusu aç</button>
+    </div>`;
+  }
+
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
   el(`<div class="cols">
     <section class="colmain">
+      ${tabs}
       <div class="m-only">${prog(stageNo)}</div>
-      <p class="eyeb">Güncel durumun</p>
+      <p class="eyeb">Güncel durumun${ME.applications.length > 1 ? ` — ${a.staj_no}. staj` : ""}</p>
       ${notifs}${h}${takildin}${notifHist}
     </section>
     <aside class="colside">${side}</aside>
@@ -284,7 +310,8 @@ function acceptDoc() {
 async function startApplication(tur) {
   try {
     wizardApp = await api("/application", { method: "POST" });
-    if (tur) wizardApp = await api("/application", { method: "PATCH", json: { tur, wizard_step: 1 } });
+    selApp = wizardApp.id;
+    if (tur) wizardApp = await api("/application", { method: "PATCH", json: { tur, wizard_step: 1, app_id: wizardApp.id } });
     go("wizard");
   } catch (e) { alert(e.message); }
 }
@@ -294,7 +321,8 @@ const STEP_NAMES = ["Bilgilerin", "Staj türün", "Kurum", "Sorumlu mühendis", 
 
 async function wizard(msg) {
   nav("home");
-  wizardApp = wizardApp || ME.application;
+  // Sihirbaz her zaman seçili başvuru üzerinde çalışır (iki staj olabilir).
+  wizardApp = (wizardApp && wizardApp.id === ME.application?.id) ? wizardApp : ME.application;
   const a = wizardApp, n = a.wizard_step || 1;
   const head = `<div class="prog"><div class="bar"><i class="blue" style="width:${Math.round(n / 7 * 100)}%"></i></div>
     <div class="txt"><span>Adım ${n}/7 · ${STEP_NAMES[n - 1]}</span></div></div>${msg ? errBox(msg) : ""}`;
@@ -519,12 +547,12 @@ function wPhone() {
 
 async function wSave(nextStep, fields) {
   try {
-    wizardApp = await api("/application", { method: "PATCH", json: { ...fields, wizard_step: nextStep } });
+    wizardApp = await api("/application", { method: "PATCH", json: { ...fields, wizard_step: nextStep, app_id: wizardApp.id } });
     wizard();
   } catch (e) { wizard(e.message); }
 }
 async function wStep(n) {
-  try { wizardApp = await api("/application", { method: "PATCH", json: { wizard_step: n } }); } catch {}
+  try { wizardApp = await api("/application", { method: "PATCH", json: { wizard_step: n, app_id: wizardApp.id } }); } catch {}
   wizard();
 }
 
@@ -538,7 +566,7 @@ async function onDatesInput(recalc) {
   const s = $("d1").value;
   if (!s) return;
   if (recalc) $("d2").value = "";
-  const payload = { start: s, tur: wizardApp.tur, days: pickedDays(), saturday: $("cmt")?.checked };
+  const payload = { start: s, tur: wizardApp.tur, days: pickedDays(), saturday: $("cmt")?.checked, app_id: wizardApp.id };
   if (!$("d2").value) {
     const r = await api("/application/check-dates", { method: "POST", json: payload });
     if (r.suggestion?.auto && r.suggestion.value) {
@@ -596,7 +624,7 @@ async function wSaveDates() {
 
 async function wSubmit() {
   try {
-    await api("/application/submit", { method: "POST" });
+    await api("/application/submit", { method: "POST", json: { app_id: wizardApp.id } });
     await refresh();
     el(`<div class="center" style="margin-top:30px"><div class="icon">✅</div></div>
       <h1 class="center">Başvurun gönderildi.</h1>
@@ -614,6 +642,7 @@ function pickFile(kind) {
     if (!inp.files[0]) return;
     const fd = new FormData();
     fd.append("file", inp.files[0]);
+    if (ME.application) fd.append("app_id", ME.application.id);
     const box = $("up");
     if (box) box.textContent = "Yükleniyor…";
     try {
@@ -659,7 +688,7 @@ function sgkScreen() {
     <p class="hint" style="text-align:center">Sigorta işlemleriyle ilgili ayrıntılı bilgi için: <b>mfstaj@balikesir.edu.tr</b></p>`);
 }
 async function markSgk(seen) {
-  const r = await api("/sgk", { method: "POST", json: { seen } });
+  const r = await api("/sgk", { method: "POST", json: { seen, app_id: ME.application.id } });
   await refresh();
   if (r.reported) {
     el(`<div class="center" style="margin-top:30px"><div class="icon">🙌</div></div>
@@ -668,8 +697,8 @@ async function markSgk(seen) {
       <button class="big" onclick="go('home')">Tamam</button>`);
   } else go("home");
 }
-async function markObs() { await api("/obs", { method: "POST" }); await refresh(); go("home"); }
-async function markSicil(v) { await api("/sicil", { method: "POST", json: { delivered: v } }); await refresh(); go("home"); }
+async function markObs() { await api("/obs", { method: "POST", json: { app_id: ME.application.id } }); await refresh(); go("home"); }
+async function markSicil(v) { await api("/sicil", { method: "POST", json: { delivered: v, app_id: ME.application.id } }); await refresh(); go("home"); }
 
 function deliverScreen() {
   nav("home");
@@ -687,7 +716,7 @@ function deliverScreen() {
     <p class="after" id="upWhy">Listeyi tamamlayınca buton açılır.</p>
     <div class="box warn"><b>Sicil fişi buraya yüklenmez.</b> İşyerinin <b>fotoğraflı</b> doldurduğu fişi kapalı zarfla bölüm sekreterliğine elden götür.<br><br>
       <label class="check" style="border:0"><input type="checkbox" ${ME.application.sicil_delivered ? "checked" : ""}
-        onchange="api('/sicil',{method:'POST',json:{delivered:this.checked}})"> Zarfı teslim ettim</label></div>`);
+        onchange="api('/sicil',{method:'POST',json:{delivered:this.checked,app_id:ME.application.id}})"> Zarfı teslim ettim</label></div>`);
 }
 function chk() {
   const boxes = [...document.querySelectorAll("main .check input")].slice(0, 8);
