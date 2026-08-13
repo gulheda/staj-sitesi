@@ -19,22 +19,52 @@
 
   /* ── Üst bant: kurumsal lacivert ── */
   header{background:var(--navy)}
-  .hwrap{max-width:1200px;margin:0 auto;padding:0 28px;display:flex;align-items:center;gap:26px;height:64px}
-  .logo{color:#fff;font-weight:700;font-size:17.5px;line-height:1.2;white-space:nowrap}
+  .hwrap{width:100%;padding:0 40px;display:flex;align-items:center;gap:30px;height:70px}
+  .logo{color:#fff;font-weight:700;font-size:19px;line-height:1.2;white-space:nowrap}
   .logo small{display:block;font-weight:400;font-size:12px;color:#aebbdd;letter-spacing:.02em}
   nav{display:flex;gap:4px;flex:1;justify-content:center}
-  nav a{padding:8px 18px;color:#d5def5;text-decoration:none;cursor:pointer;font-size:15px;border-radius:8px;font-weight:500}
+  nav a{padding:10px 24px;color:#d5def5;text-decoration:none;cursor:pointer;font-size:16.5px;border-radius:9px;font-weight:500}
   nav a:hover{background:rgba(255,255,255,.12);color:#fff}
   nav a.active{background:#fff;color:var(--navy);font-weight:700}
   header .muted{color:#aebbdd;font-size:14px}
   header .link{color:#fff;font-size:13.5px}
 
+  /* ── Profil menüsü ── */
+  .uwrap{position:relative}
+  .uchip{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.1);border:0;color:#fff;
+         padding:7px 14px 7px 8px;border-radius:99px;cursor:pointer;font-family:inherit;font-size:14.5px}
+  .uchip:hover{background:rgba(255,255,255,.18)}
+  .uava{width:30px;height:30px;border-radius:50%;background:#fff;color:var(--navy);font-weight:700;
+        font-size:13px;display:flex;align-items:center;justify-content:center}
+  .umenu{display:none;position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--line);
+         border-radius:12px;box-shadow:0 8px 24px rgba(22,48,95,.18);min-width:180px;z-index:50;overflow:hidden}
+  .umenu.open{display:block}
+  .umenu button{display:block;width:100%;text-align:left;background:#fff;border:0;padding:12px 18px;
+                font-size:15px;font-family:inherit;cursor:pointer;color:var(--ink)}
+  .umenu button:hover{background:#f2f5fb}
+
   /* ── Sayfa gövdesi ── */
   main{width:100%;max-width:780px;margin:36px auto;padding:44px 52px;background:var(--card);
        border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(22,48,95,.06)}
-  main.wide{max-width:1200px;background:transparent;border:0;box-shadow:none;padding:32px 28px}
-  .cols{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
-  .colmain{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:40px 48px;
+  main.wide{max-width:1380px;background:transparent;border:0;box-shadow:none;padding:32px 32px}
+  main.full{max-width:1380px;background:transparent;border:0;box-shadow:none;padding:32px 32px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:34px 42px;
+         margin-bottom:22px;box-shadow:0 1px 2px rgba(22,48,95,.06)}
+  .docgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px;margin-top:12px}
+  .docgrid .doc{margin:0;display:flex;flex-direction:column}
+  .docgrid .doc-sum{flex:1}
+  .rehgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:12px}
+  .rehcard{border:1px solid var(--line);border-radius:12px;padding:18px 22px;background:#fff}
+  .rehcard.now{border-color:var(--accent);box-shadow:0 0 0 2px rgba(29,78,216,.15)}
+  .rehno{display:inline-flex;width:30px;height:30px;border-radius:50%;background:#eef3ff;color:var(--accent);
+         font-weight:700;align-items:center;justify-content:center;font-size:14.5px;margin-bottom:8px}
+  .rehcard.done .rehno{background:#ecf7ef;color:var(--ok)}
+  .rehcard.now .rehno{background:var(--accent);color:#fff}
+  .rehcard h3{font-size:16.5px;margin-bottom:5px}
+  .rehcard p{font-size:14.5px;color:#4a5262}
+  .helpgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:start}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
+  .colmain{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:44px 54px;
            box-shadow:0 1px 2px rgba(22,48,95,.06);border-top:4px solid var(--accent)}
   .colmain.tone-warn{border-top-color:#d97706}
   .colmain.tone-ok{border-top-color:#16a34a}
@@ -135,17 +165,19 @@
   .backrow .link{text-decoration:none;font-size:14.5px}
 
   footer{border-top:1px solid var(--line);background:#fff;margin-top:auto}
-  .fwrap{max-width:1200px;margin:0 auto;padding:14px 28px;font-size:13px;color:#8b93a2;
+  .fwrap{width:100%;padding:14px 40px;font-size:13px;color:#8b93a2;
          display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
 
   /* ── Duyarlılık ── */
   @media (max-width:960px){
     .cols{grid-template-columns:1fr}
+    .helpgrid{grid-template-columns:1fr}
     .m-only{display:block}
     nav{justify-content:flex-start}
   }
   @media (max-width:700px){
-    main,main.wide{margin:0;border:0;border-radius:0;padding:28px 20px;flex:1;background:#fff}
+    main,main.wide,main.full{margin:0;border:0;border-radius:0;padding:28px 20px;flex:1;background:#fff}
+    .panel{border:0;padding:0;box-shadow:none;background:transparent}
     .colmain{border:0;padding:0;box-shadow:none}
     .big,.quiet{display:block;width:100%;min-width:0}
     .logo small{display:none}
@@ -165,10 +197,15 @@
         <a data-nav="help" onclick="go('help')">Yardım</a>
         <a data-nav="guide" onclick="go('guide')">Rehber</a>
       </nav>
-      <span style="display:flex;align-items:center;gap:12px">
-        <span id="uname" class="muted" style="font-size:13.5px"></span>
-        <button class="link" style="font-size:13px" onclick="logout()">Çıkış</button>
-      </span>
+      <div class="uwrap">
+        <button class="uchip" onclick="toggleUmenu(event)">
+          <span class="uava" id="uava"></span><span id="uname"></span><span style="font-size:11px">▾</span>
+        </button>
+        <div class="umenu" id="umenu">
+          <button onclick="go('profil')">👤 Profilim</button>
+          <button onclick="logout()">↩ Çıkış yap</button>
+        </div>
+      </div>
     </div>
   </header>
   <main id="app"></main>

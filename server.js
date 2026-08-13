@@ -202,7 +202,8 @@ app.get("/api/me", auth(), (req, res) => {
       progress.done = countWorkdays(appRow.start_date, today() <= appRow.end_date ? today() : appRow.end_date, o);
   }
   res.json({
-    user: { name: req.user.name, no: req.user.ogrenci_no, role: req.user.role, sinif: req.user.sinif ?? 3 },
+    user: { name: req.user.name, no: req.user.ogrenci_no, role: req.user.role,
+      sinif: req.user.sinif ?? 3, email: req.user.email },
     stage: deriveStage(appRow),
     application: appRow || null,
     applications: apps.map(a => ({ id: a.id, staj_no: a.staj_no, status: a.status, stage: deriveStage(a) })),

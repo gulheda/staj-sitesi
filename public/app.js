@@ -9,9 +9,14 @@ const $ = (id) => document.getElementById(id);
 const el = (html) => {
   const m = $("app");
   m.innerHTML = html;
-  m.classList.toggle("wide", html.includes('class="cols"')); // iki sütunlu Stajım ekranı geniş düzen kullanır
+  m.classList.toggle("wide", html.includes('class="cols"')); // iki sütunlu Stajım ekranı
+  m.classList.toggle("full", html.includes("data-full"));     // yatay ızgaralı geniş sayfalar
   window.scrollTo(0, 0);
 };
+
+// Profil menüsü aç/kapa; dışarı tıklanınca kapanır
+function toggleUmenu(e) { e.stopPropagation(); $("umenu").classList.toggle("open"); }
+document.addEventListener("click", () => $("umenu")?.classList.remove("open"));
 
 async function api(path, opts = {}) {
   if (opts.json) {
@@ -28,7 +33,10 @@ async function api(path, opts = {}) {
 function nav(active) {
   $("topbar").style.display = "flex";
   document.querySelectorAll("nav a").forEach(a => a.classList.toggle("active", a.dataset.nav === active));
-  if (ME?.user) $("uname").textContent = ME.user.name;
+  if (ME?.user) {
+    $("uname").textContent = ME.user.name;
+    $("uava").textContent = ME.user.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  }
 }
 
 const STAGES = ["Staj yeri bulma", "Belgeleri hazırlama", "Başvuru", "Komisyon incelemesi", "Onay",
@@ -879,24 +887,30 @@ const BELGELER = {
 
 function docsScreen() {
   nav("docs");
-  // Sadelik: yalnız bulunduğun aşamanın belgeleri açık gösterilir;
-  // diğer gruplar tek satırlık başlık altında katlanmıştır.
+  // Yatay ızgara düzeni: her grup bir panel, belgeler yan yana kartlar.
+  // Öğrencinin bulunduğu aşamanın grubu en üstte ve işaretli.
   const stageGroup = ["noplace", "draft", "review", "fix", "rejected"].includes(ME.stage)
     ? "Başvurudan önce gerekenler"
     : ["sgk", "obs", "ready", "during"].includes(ME.stage)
       ? "Staj sırasında kullanacakların" : "Teslim ederken gerekenler";
   const mine = ME.documents.length
-    ? `<div class="box ok" style="max-width:none">✅ Yüklediklerin: ${ME.documents.map(d =>
+    ? `<div class="box ok" style="margin-top:0">✅ Yüklediklerin: ${ME.documents.map(d =>
         `${d.kind === "kabul" ? "kabul belgesi" : "staj defteri"} (${d.uploaded_at.slice(0, 10)})`).join(" · ")}</div>` : "";
-  el(`<h1>Belgelerim</h1>
-    <p class="sub">Şu an ihtiyacın olan belgeler aşağıda — her birinin yanında İndir butonu var.
-    Diğer aşamaların belgeleri alttaki başlıklarda katlı durur.</p>
+  const grupPanel = (grup, items, aktif) => `
+    <section class="panel">
+      <h1 style="font-size:19px;margin-bottom:2px;${aktif ? "color:#1d4ed8" : ""}">${grup}
+        ${aktif ? '<span style="font-size:13px;font-weight:600;background:#eef3ff;border-radius:99px;padding:3px 12px;margin-left:8px;vertical-align:2px">şu an bu aşamadasın</span>' : ""}</h1>
+      <div class="docgrid">${items.map(belgeKart).join("")}</div>
+    </section>`;
+  const sirali = [[stageGroup, BELGELER[stageGroup], true],
+    ...Object.entries(BELGELER).filter(([g]) => g !== stageGroup).map(([g, i]) => [g, i, false])];
+  el(`<div data-full>
+    <h1>Belgelerim</h1>
+    <p class="sub">Her belgenin ne olduğu yanında yazar, İndir butonuyla alırsın.
+    "Kim doldurur, nereye gider?" satırına tıklarsan ayrıntısını görürsün.</p>
     ${mine}
-    <h1 style="font-size:18px;margin:20px 0 4px;color:#1e40af">${stageGroup}</h1>
-    ${BELGELER[stageGroup].map(belgeKart).join("")}
-    ${Object.entries(BELGELER).filter(([g]) => g !== stageGroup).map(([grup, items]) => `
-      <details style="margin-top:18px"><summary style="cursor:pointer;font-size:16.5px;font-weight:700;color:#374151;padding:6px 0">${grup} (${items.length} belge)</summary>
-      ${items.map(belgeKart).join("")}</details>`).join("")}`);
+    ${sirali.map(([g, i, a]) => grupPanel(g, i, a)).join("")}
+  </div>`);
 }
 
 /* ───────── Staj rehberi: bütün sürecin sakin anlatımı ───────── */
@@ -918,17 +932,55 @@ const REHBER = [
 ];
 function guideScreen() {
   nav("guide");
-  el(`<h1>Staj süreci, baştan sona.</h1>
-    <p class="sub">Bunu ezberlemene gerek yok — sisteme her girdiğinde hangi adımdaysan onu gösteririz.
-    Bu sayfa, bütünü merak edenler için.</p>
-    ${REHBER.map(([ad, ne, gorev], i) => `
-      <div class="qa ${STAGE_NO[ME.stage] === i ? "open" : ""}" ${STAGE_NO[ME.stage] === i ? 'style="border-color:#1d4ed8"' : ""}>
-        <div class="q" onclick="this.parentNode.classList.toggle('open')">
-          ${i + 1}. ${ad} ${STAGE_NO[ME.stage] === i ? '<span style="color:#1d4ed8">· şu an buradasın</span>' : ""}</div>
-        <div class="a">${ne}<br><b>Senin görevin:</b> ${gorev}</div>
-      </div>`).join("")}
-    <div class="box info" style="margin-top:20px">Bölümde toplam <b>iki staj</b> yapılır (2 × 20 iş günü = 40 iş günü).
-    İkisi de aynı süreçten geçer.</div>`);
+  const now = STAGE_NO[ME.stage] ?? -1;
+  el(`<div data-full>
+    <h1>Staj süreci, baştan sona</h1>
+    <p class="sub">12 adımın tamamı aşağıda. Ezberlemene gerek yok — sisteme her girdiğinde hangi
+    adımdaysan onu zaten gösteririz. Yeşil adımları tamamladın, mavi çerçeveli adım şu an bulunduğun yer.</p>
+    <div class="rehgrid">
+      ${REHBER.map(([ad, ne, gorev], i) => `
+        <div class="rehcard ${i < now ? "done" : i === now ? "now" : ""}">
+          <span class="rehno">${i < now ? "✓" : i + 1}</span>
+          <h3>${ad}${i === now ? ' <span style="color:#1d4ed8;font-size:13px">· buradasın</span>' : ""}</h3>
+          <p>${ne}</p>
+          <p style="margin-top:6px"><b>Senin görevin:</b> ${gorev}</p>
+        </div>`).join("")}
+    </div>
+    <div class="box info" style="margin-top:20px">Bölümde toplam <b>iki staj</b> yapılır (2 × 20 iş günü = 40 iş günü). İkisi de aynı adımlardan geçer.</div>
+  </div>`);
+}
+
+/* ───────── Profil ───────── */
+async function profilScreen(msg) {
+  nav(null);
+  const KISA2 = { draft: "taslak", review: "incelemede", fix: "düzeltme bekliyor", sgk: "SGK kontrolü",
+    obs: "OBS kaydı", ready: "staja hazır", during: "devam ediyor", deliver: "teslim zamanı",
+    evaluating: "değerlendirmede", fix_defter: "defter düzeltmesi", accepted: "kabul edildi ✓", rejected: "reddedildi" };
+  el(`<h1>Profilim</h1>
+    <p class="sub">Bilgilerin öğrenci kayıtlarından gelir; yanlışlık varsa bölüm sekreterliğine bildir.</p>
+    ${msg ? `<div class="box ok">${msg}</div>` : ""}
+    <div class="box info" style="max-width:none">
+      <b>${ME.user.name}</b><br>
+      Öğrenci No: ${ME.user.no} · ${ME.user.sinif}. sınıf · Bilgisayar Mühendisliği
+      ${ME.user.email ? `<br>E-posta: ${ME.user.email}` : ""}
+    </div>
+    <h1 style="font-size:18px;margin-top:24px">Stajlarım</h1>
+    ${ME.applications.length ? ME.applications.map(x =>
+      `<div class="box ${x.stage === "accepted" ? "ok" : "info"}" style="max-width:none">
+        <b>${x.staj_no}. Staj</b> — ${KISA2[x.stage] || x.status}
+        <button class="link" style="margin-left:10px" onclick="switchStaj(${x.id})">görüntüle</button></div>`).join("")
+      : '<p class="muted">Henüz staj başvurun yok.</p>'}
+    <h1 style="font-size:18px;margin-top:24px">Şifremi değiştir</h1>
+    <label>Yeni şifren</label>
+    <input id="npw" type="password" maxlength="64" placeholder="En az 8 karakter">
+    <button class="big" onclick="changePw()">Şifreyi güncelle</button>
+    <p class="why" id="pwWhy"></p>`);
+}
+async function changePw() {
+  try {
+    await api("/set-password", { method: "POST", json: { password: $("npw").value } });
+    profilScreen("✓ Şifren güncellendi. Bir sonraki girişte yeni şifreni kullan.");
+  } catch (e) { $("pwWhy").textContent = e.message; }
 }
 
 /* ───────── Yardım ───────── */
@@ -937,17 +989,37 @@ async function helpScreen(prefill) {
   const faq = await api("/faq");
   const myQs = await api("/questions");
   const cats = [...new Set(faq.map(f => f.category))];
-  el(`<h1>Yardım</h1>
-    <input id="fq" placeholder="Sorunu yaz, ör: kaç gün staj yapmam gerekiyor?" value="${prefill || ""}" oninput="faqSearch()">
-    <div id="fres"></div>
-    <div style="margin-top:10px">${cats.map(c =>
-      `<button class="link" style="font-size:13.5px;margin-right:12px" onclick="$('fq').value='${c}';faqSearch()">${c}</button>`).join("")}</div>
-    <h1 style="font-size:18px;margin-top:24px">Çok sorulanlar</h1>
-    ${faq.slice(0, 6).map(f => `<div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${f.q}</div><div class="a">${f.a}</div></div>`).join("")}
-    <div class="box info">Cevabını bulamadın mı? <button class="link" onclick="askScreen()">Komisyona sor</button></div>
-    ${myQs.length ? `<h1 style="font-size:18px;margin-top:24px">Sorularım</h1>` +
-      myQs.map(q => `<div class="qa ${q.answer ? "open" : ""}"><div class="q">${q.answer ? "✅" : "⏳"} ${q.text}</div>
-        <div class="a">${q.answer || "Henüz cevaplanmadı — cevap gelince bildirim alacaksın."}</div></div>`).join("") : ""}`);
+  el(`<div data-full>
+    <h1>Yardım</h1>
+    <p class="sub">Sorunu kendi cümlenle yaz — büyük ihtimalle cevabı hazır. Bulamazsan komisyona iletirsin.</p>
+    <section class="panel">
+      <input id="fq" style="max-width:none;font-size:17px;padding:15px 18px" value="${prefill || ""}"
+        placeholder="🔍  Sorunu yaz, ör: staj defterini ne zaman teslim edeceğim?" oninput="faqSearch()">
+      <div style="margin-top:12px">${cats.map(c =>
+        `<button class="quiet" style="min-width:0;padding:7px 16px;font-size:14px;margin:4px 6px 0 0"
+          onclick="$('fq').value='${c}';faqSearch()">${c}</button>`).join("")}</div>
+      <div id="fres"></div>
+    </section>
+    <div class="helpgrid">
+      <section class="panel" style="margin-bottom:0">
+        <h1 style="font-size:19px">Çok sorulanlar</h1>
+        <p class="muted" style="margin-bottom:10px">Soruya tıkla, cevabı altında açılır.</p>
+        ${faq.slice(0, 7).map(f => `<div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${f.q}</div><div class="a">${f.a}</div></div>`).join("")}
+      </section>
+      <div>
+        <section class="panel">
+          <h1 style="font-size:19px">Cevabını bulamadın mı?</h1>
+          <p class="muted" style="margin-bottom:10px">Sorunu doğrudan staj komisyonuna ilet; cevap gelince bildirim alırsın.</p>
+          <button class="big" style="min-width:0;width:100%" onclick="askScreen()">Komisyona soru gönder</button>
+        </section>
+        ${myQs.length ? `<section class="panel">
+          <h1 style="font-size:19px">Sorularım</h1>
+          ${myQs.map(q => `<div class="qa ${q.answer ? "open" : ""}"><div class="q">${q.answer ? "✅" : "⏳"} ${q.text}</div>
+            <div class="a">${q.answer || "Henüz cevaplanmadı — cevap gelince bildirim alacaksın."}</div></div>`).join("")}
+        </section>` : ""}
+      </div>
+    </div>
+  </div>`);
   if (prefill) faqSearch();
 }
 async function faqSearch() {
@@ -993,12 +1065,16 @@ async function sendQ() {
 
 /* ───────── Yönlendirme ───────── */
 const routes = { home, wizard, sgk: sgkScreen, deliver: deliverScreen, docs: docsScreen,
-  help: helpScreen, accept: acceptScreen, guide: guideScreen };
+  help: helpScreen, accept: acceptScreen, guide: guideScreen, profil: profilScreen };
 async function go(name) {
   try { await refresh(); } catch { return loginScreen(); }
   (routes[name] || home)();
 }
 
 (async () => {
-  try { await refresh(); go("home"); } catch { loginScreen(); }
+  try {
+    await refresh();
+    // ?sayfa=docs gibi bir adresle doğrudan bir bölüm açılabilir (yer imi desteği)
+    go(new URLSearchParams(location.search).get("sayfa") || "home");
+  } catch { loginScreen(); }
 })();
