@@ -44,6 +44,16 @@
                 font-size:15.5px;font-family:inherit;cursor:pointer;color:var(--ink)}
   .umenu button:hover{background:#f6f1ea}
 
+  /* ── Bildirim zili: geçmiş bildirimler sayfayı kalabalıklaştırmaz,
+        zile tıklayınca açılır; yeni bildirim varsa kırmızı sayaç yanar ── */
+  .nbell{position:relative;font-size:18px;padding:8px 13px}
+  .ncount{position:absolute;top:1px;right:3px;background:#dc2626;color:#fff;font-size:11px;font-weight:700;
+          min-width:17px;height:17px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+  .nmenu{min-width:330px;max-width:420px}
+  .nmenu .nitem{padding:12px 16px;font-size:14px;border-bottom:1px solid var(--line);color:var(--ink);line-height:1.5}
+  .nmenu .nitem.new{background:#f9f1de}
+  .nmenu .nitem:last-child{border-bottom:0}
+
   /* ── Sayfa gövdesi ── */
   main{width:100%;max-width:860px;margin:38px auto;padding:48px 58px;background:var(--card);
        border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgba(20,22,26,.07)}
@@ -241,6 +251,10 @@
         <a data-nav="help" onclick="go('help')">Yardım</a>
         <a data-nav="guide" onclick="go('guide')">Rehber</a>
       </nav>
+      <div class="uwrap">
+        <button class="uchip nbell" onclick="toggleNotif(event)" title="Bildirimler">🔔<span id="ncount" class="ncount" style="display:none"></span></button>
+        <div class="umenu nmenu" id="nmenu"></div>
+      </div>
       <div class="uwrap">
         <button class="uchip" onclick="toggleUmenu(event)">
           <span class="uava" id="uava"></span><span id="uname"></span><span style="font-size:11px">▾</span>

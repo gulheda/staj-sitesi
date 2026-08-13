@@ -14,9 +14,22 @@ const el = (html) => {
   window.scrollTo(0, 0);
 };
 
-// Profil menüsü aç/kapa; dışarı tıklanınca kapanır
-function toggleUmenu(e) { e.stopPropagation(); $("umenu").classList.toggle("open"); }
-document.addEventListener("click", () => $("umenu")?.classList.remove("open"));
+// Profil ve bildirim menüleri; dışarı tıklanınca kapanır
+function toggleUmenu(e) { e.stopPropagation(); $("nmenu")?.classList.remove("open"); $("umenu").classList.toggle("open"); }
+function toggleNotif(e) {
+  e.stopPropagation();
+  $("umenu")?.classList.remove("open");
+  const m = $("nmenu");
+  if (!m.classList.contains("open")) {
+    m.innerHTML = ME?.notifications?.length
+      ? ME.notifications.map(n => `<div class="nitem ${n.seen ? "" : "new"}">${n.text}<br>
+          <span class="muted" style="font-size:12.5px">${n.created_at.slice(0, 10)}</span></div>`).join("")
+      : '<div class="nitem" style="color:var(--mut)">Henüz bildirimin yok.</div>';
+  }
+  m.classList.toggle("open");
+  const nc = $("ncount"); if (nc) nc.style.display = "none"; // menü açılınca sayaç söner
+}
+document.addEventListener("click", () => { $("umenu")?.classList.remove("open"); $("nmenu")?.classList.remove("open"); });
 
 async function api(path, opts = {}) {
   if (opts.json) {
@@ -37,6 +50,10 @@ function nav(active) {
     $("uname").textContent = ME.user.name;
     $("uava").textContent = ME.user.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
   }
+  // Yeni bildirim sayacı: varsa zilin üstünde kırmızı rozet yanar
+  const yeni = ME?.notifications?.filter(n => !n.seen).length || 0;
+  const nc = $("ncount");
+  if (nc) { nc.textContent = yeni; nc.style.display = yeni ? "flex" : "none"; }
 }
 
 const STAGES = ["Staj yeri bulma", "Belgeleri hazırlama", "Başvuru", "Komisyon incelemesi", "Onay",
@@ -44,14 +61,14 @@ const STAGES = ["Staj yeri bulma", "Belgeleri hazırlama", "Başvuru", "Komisyon
 const STAGE_NO = { noplace: 0, draft: 2, review: 3, fix: 3, rejected: 3, sgk: 5, obs: 6,
   ready: 7, during: 7, deliver: 9, evaluating: 10, fix_defter: 9, accepted: 12 };
 
+// Sade ilerleme çubuğu: tek satır. Adımların tam listesi sağdaki
+// "Staj sürecin" panelinde zaten var — burada tekrar edilmez.
 function prog(now) {
   const pct = Math.round(now / STAGES.length * 100);
   return `<div class="prog">
     <div class="bar"><i style="width:${pct}%"></i></div>
     <div class="txt"><span>Adım ${now}/12 · ${STAGES[now] ?? "Bitti"}</span><span>%${pct}</span></div>
-    <details><summary>Tüm adımları gör</summary><ul>
-      ${STAGES.map((s, i) => `<li class="${i < now ? "done" : (i === now ? "now" : "")}">${i < now ? "✓" : (i === now ? "→" : "·")} ${s}</li>`).join("")}
-    </ul></details></div>`;
+  </div>`;
 }
 
 const back = `<div class="backrow"><button class="link" onclick="go('home')">← Stajıma dön</button></div>`;
@@ -152,7 +169,6 @@ async function logout() { await api("/logout", { method: "POST" }); loginScreen(
 function home() {
   nav("home");
   const s = ME.stage, a = ME.application;
-  const notifs = ME.notifications.filter(n => !n.seen).map(n => `<div class="notif">🔔 ${n.text}</div>`).join("");
   const stageNo = STAGE_NO[s] ?? 0;
   let h = "";
 
@@ -287,13 +303,7 @@ function home() {
       </div></div>`;
   }
 
-  // Bildirim geçmişi ana sütunun altında: sol kart kısa kalıp sayfa dengesiz görünmesin.
-  const notifHist = ME.notifications.length
-    ? `<div style="border-top:1px solid #f3f4f6;margin-top:26px;padding-top:14px">
-        <p class="muted" style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:8px">Bildirimler</p>
-        ${ME.notifications.slice(0, 4).map(n => `<div class="notif" style="opacity:${n.seen ? ".7" : "1"};font-size:13.5px">
-          ${n.text} <span class="muted">· ${n.created_at.slice(0, 10)}</span></div>`).join("")}</div>` : "";
-
+  // Bildirimler bu sayfada değil, üst bantta zilin (🔔) altında durur.
   // Birden çok başvuru varsa üstte staj seçici; tek başvuruda görünmez.
   const KISA = { draft: "taslak", review: "incelemede", fix: "düzeltme bekliyor", sgk: "SGK kontrolü",
     obs: "OBS kaydı", ready: "staja hazır", during: "devam ediyor", deliver: "teslim zamanı",
@@ -310,7 +320,7 @@ function home() {
           onclick="switchStaj(${x.id})">${x.id === a?.id ? "▸ " : ""}${x.staj_no}. Staj · ${KISA[x.stage] || x.status}</button>`).join("")}
         ${canSecond ? `<button class="tab add" onclick="go('accept')">+ 2. stajını da başlat</button>` : ""}
        </div>
-       ${ME.applications.length > 1 ? `<div class="stajbar">${a.staj_no === 2 ? "▦" : "▨"} Şu an ${a.staj_no}. stajının ekranındasın — ${a.staj_no === 2 ? "gri zemin 2. staj demektir" : "beyaz zemin 1. staj demektir"}. Diğerine geçmek için üstteki sekmeye tıkla.</div>` : ""}
+       ${ME.applications.length > 1 ? `<div class="stajbar">${a.staj_no}. stajındasın (${a.staj_no === 2 ? "gri" : "beyaz"} ekran)</div>` : ""}
        ${canSecond ? '<p class="hint" style="margin:-8px 0 18px">3. ve 4. sınıflar iki stajı aynı dönemde yapabilir; tarihler çakışmadığı sürece ikisi ayrı ayrı ilerler.</p>' : ""}` : "";
 
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
@@ -320,8 +330,7 @@ function home() {
     <section class="colmain ${TONE[s] || ""}">
       ${tabs}
       ${prog(stageNo)}
-      <p class="eyeb">Güncel durumun${ME.applications.length > 1 ? ` — ${a.staj_no}. staj` : ""}</p>
-      ${notifs}${h}${takildin}${notifHist}
+      ${h}${takildin}
     </section>
     <aside class="colside">${side}</aside>
   </div>`);
