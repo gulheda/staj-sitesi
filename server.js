@@ -159,7 +159,7 @@ app.post("/api/login", (req, res) => {
     // İlk giriş: TC kimlik no ile kimlik doğrulama, ardından şifre oluşturma.
     if ((pass || "").trim() !== u.tc) {
       noteFail(key);
-      return res.status(401).json({ error: "İlk girişte şifre alanına TC kimlik numaranı yazmalısın." });
+      return res.status(401).json({ error: "Bu hesapla henüz şifre oluşturulmamış — ilk girişini yapacaksın. Şifre alanına TC kimlik numaranı yaz. Yazdıysan ve bu hatayı görüyorsan, TC'n bölümün kayıtlarındakiyle eşleşmiyor demektir: numaralarını kontrol et, sorun sürerse bölüm sekreterliğine bildir." });
     }
     setSession(res, u.id);
     return res.json({ firstLogin: true, name: u.name });

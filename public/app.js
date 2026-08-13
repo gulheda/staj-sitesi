@@ -113,6 +113,8 @@ function loginScreen(msg) {
   document.body.classList.remove("staj2");
   // Tek form, tek yol: ilk kez giren şifre alanına TC'sini yazar,
   // sistem onu tanıyıp şifre oluşturmaya götürür. Ayrı "ilk giriş" ekranı yoktur.
+  // Numara tarayıcıda hatırlanır; Enter her iki alandan da çalışır.
+  const sonNo = localStorage.getItem("sonNo") || "";
   el(`
     <div style="max-width:560px;margin:30px auto">
       <h1>BAÜN Staj Portalı</h1>
@@ -120,23 +122,35 @@ function loginScreen(msg) {
       ${msg ? errBox(msg) : ""}
       <label>Öğrenci numaran</label>
       <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Öğrenci numaran (sadece rakam)"
-        autocomplete="username" oninput="digitsOnly(this,12)">
-      <label>Şifren</label>
-      <input id="pw" type="password" maxlength="64" placeholder="Şifreni yaz" autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')doLogin()">
+        autocomplete="username" value="${sonNo}" oninput="digitsOnly(this,12)"
+        onkeydown="if(event.key==='Enter')$('pw').focus()">
+      <label>Şifren <span class="muted">(ilk girişse: TC kimlik numaran)</span></label>
+      <div style="position:relative;max-width:580px">
+        <input id="pw" type="password" maxlength="64" placeholder="Şifren — ilk girişse TC kimlik numaran"
+          autocomplete="current-password" style="padding-right:52px"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" onclick="const p=$('pw');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁':'🙈'"
+          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;font-size:19px;padding:6px" title="Şifreyi göster/gizle">👁</button>
+      </div>
       <button class="big" id="loginBtn" onclick="doLogin()">Giriş yap</button>
       <div class="box info" style="margin-top:16px">İlk kez mi giriyorsun? Şifre alanına <b>TC kimlik numaranı</b> yaz —
-        girişten sonra kendi şifreni oluşturacaksın.</div>
+        girişten sonra kendi şifreni oluşturacaksın. Daha önce şifre oluşturduysan şifrenle girersin.</div>
       <p class="center" style="margin-top:12px">
         <button class="link" style="font-size:13.5px"
           onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button>
       </p>
     </div>`);
+  ($("no").value ? $("pw") : $("no")).focus();
 }
 
 async function doLogin() {
+  const btn = $("loginBtn");
+  if (btn.disabled) return; // çift tıklama koruması
+  btn.disabled = true; btn.textContent = "Kontrol ediliyor…";
   try {
-    const r = await api("/login", { method: "POST", json: { no: $("no").value, pass: $("pw").value } });
+    const no = $("no").value.trim();
+    const r = await api("/login", { method: "POST", json: { no, pass: $("pw").value.trim() } });
+    localStorage.setItem("sonNo", no); // bir dahaki girişte numara hazır gelir
     if (r.firstLogin) return setPassScreen(r.name);
     if (r.role === "admin") { location.href = "/admin.html"; return; }
     await refresh(); go("home");
