@@ -15,21 +15,39 @@ npm install
 npm start        # http://localhost:3000
 ```
 
-**Demo hesaplar** (ilk çalıştırmada otomatik oluşturulur):
+**Demo hesaplar** (ilk çalıştırmada otomatik oluşturulur; öğrenci şifreleri `ogrenci123`):
 
-| Kim | Giriş | Şifre | Durumu |
-|---|---|---|---|
-| Elif Aydın | `20251004444` | ilk giriş: TC `55555555555` → kendi şifresini belirler | hiç başvurusu yok, sıfırdan başlar |
-| Deniz Yılmaz | `20251001234` | ilk giriş: TC `11111111111` → kendi şifresini belirler | süreç başında |
-| Mert Kaya | `20251001111` | `mert1234` | başvurusu incelemede |
-| Ayşe Demir | `20251002222` | `ayse1234` | düzeltme istendi |
-| Zeynep Şahin | `20251003333` | `zeynep1234` | stajı bitti, defter teslim aşamasında |
-| Komisyon | `komisyon` | `komisyon123` | yönetici paneli (`/admin.html`) |
+| Öğrenci no | Ad | Senaryo |
+|---|---|---|
+| `20241001001` | Elif Aydın | İlk giriş (şifre yerine TC: `10000000247`) |
+| `20241001002` | Yağmur Kaya | İlk giriş (TC: `10000000348`) |
+| `20241001003` | Arda Demirtaş | İlk giriş (TC: `10000000449`) |
+| `20241001004` | Mira Erdoğan | İlk giriş + **2. sınıf** (TC: `10000000550`) |
+| `20241001005` | Deniz Yılmaz | Giriş yapmış, henüz staj yeri yok |
+| `20241001006` | Zeynep Şahin | Taslak başvuru (sihirbaz 3. adımda) |
+| `20241001007` | Mert Kaya | Başvurusu incelemede |
+| `20241001008` | Ayşe Demir | Düzeltme istenmiş (kaşe eksik) |
+| `20241001009` | Emre Doğan | Onaylı — SGK kontrolü aşaması |
+| `20241001010` | Selin Koç | Onaylı — OBS kaydı aşaması |
+| `20241001011` | Burak Aydın | Staja hazır (başlangıç yaklaşıyor) |
+| `20241001012` | Mehmet Ergin | **Stajı şu an devam ediyor** |
+| `20241001013` | Gizem Ak | Staj bitti — defter teslimi bekliyor |
+| `20241001014` | Naz Güler | Defter değerlendirmede + sicil zarfı teslimli |
+| `20241001015` | Cem Aksoy | Defter değerlendirmede, sicil henüz yok |
+| `20241001016` | Deren Işık | Defterde düzeltme istenmiş |
+| `20241001017` | Baran Ünal | 1. staj kabul — 2. stajı açabilir |
+| `20241001018` | Ceyda Polat | **İki staj aynı anda** (1. sürüyor, 2. incelemede) |
+| `20241001019` | Tolga Erdem | Başvurusu reddedilmiş (yeniden başvurabilir) |
+| `20241001020` | İrem Şen | **Dönem içi staj** (Pzt-Çar-Cum) |
+| `20241001021` | Onur Bulut | **Cumartesi dahil** staj |
+| `20241001022` | Aylin Tan | **Yurt dışı** stajı (Berlin) |
+| `20241001023` | Kaan Yılmaz | Her iki stajı da tamamlanmış |
+| `20241001024` | Ece Kara | 2. sınıf, tek başvuru hakkı dolu |
+| `komisyon` | Staj Komisyonu | Yönetici paneli (`/admin.html`, şifre `komisyon123`) |
 
-Ayrıca **18 öğrencilik tam veri seti** yüklüdür (`20221001001` … `20221001018`,
-hepsinin şifresi `ogrenci123`) — başvurusu incelemede, düzeltmede, stajı süren,
-defteri değerlendirmede ve kabul edilmiş öğrencilerle gerçekçi bir dönem
-görüntüsü. Komisyon paneli bu veriyle dolu gelir.
+Hızlı gezinti: `localhost:3000/demo-giris/20241001012` gibi bir adres, o
+hesapla şifresiz oturum açar (yalnız demo modunda). Veritabanını sıfırlamak
+için sunucu kapalıyken `staj.db` dosyasını silip yeniden başlatın.
 
 **Gerçek belgeler** `public/belgeler/` altındadır ve sistemden indirilir:
 EK-1 kabul formu, EK-2 ücret/İşsizlik Fonu formu, staj zorunluluk belgesi,
