@@ -320,8 +320,10 @@ function home() {
        ${canSecond ? '<p class="hint" style="margin:-12px 0 18px">3. ve 4. sınıflar iki stajı aynı dönemde yapabilir; tarihler çakışmadığı sürece ikisi ayrı ayrı ilerler.</p>' : ""}` : "";
 
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
+  const TONE = { fix: "tone-warn", fix_defter: "tone-warn", deliver: "tone-warn",
+    accepted: "tone-ok", ready: "tone-ok" };
   el(`<div class="cols">
-    <section class="colmain">
+    <section class="colmain ${TONE[s] || ""}">
       ${tabs}
       <div class="m-only">${prog(stageNo)}</div>
       <p class="eyeb">Güncel durumun${ME.applications.length > 1 ? ` — ${a.staj_no}. staj` : ""}</p>
