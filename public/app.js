@@ -165,6 +165,60 @@ async function doSetPass() {
 
 async function logout() { await api("/logout", { method: "POST" }); loginScreen(); }
 
+/* ───────── Tanıtım turu ─────────
+   İlk kez giren ve henüz başvurusu olmayan öğrenciye kendiliğinden açılır.
+   Yazı duvarı değil: her ekranda tek konu, büyük simge, üç kısa satır.
+   Rehber sayfasından her zaman yeniden izlenebilir. */
+const TOUR = [
+  { icon: "👋", title: "Hoş geldin!", sub: "1 dakikada bütün süreci görelim.", items: [
+    ["🎯", "Staj işlerinin <b>tamamı</b> bu tek adreste: başvuru, takip, soru, defter teslimi."],
+    ["🧭", "Sistem sana her an <b>tek bir şey</b> söyler: sıradaki adımını."],
+    ["🔔", "Gelişmeler üstteki zile bildirim olarak düşer — hiçbir şeyi kaçırmazsın."]] },
+  { icon: "🏢", title: "1 · Staj yerini bul", sub: "Süreç sistem dışında, kurum aramakla başlar.", items: [
+    ["👷", "Tek şart: kurumda senden sorumlu olacak <b>bilgisayar/yazılım mühendisi</b> olmalı."],
+    ["❓", "Emin değilsen kuruma sorulacak hazır soruyu sistem sana verir."],
+    ["🌍", "Kurum Türkiye'de veya yurt dışında olabilir."]] },
+  { icon: "📄", title: "2 · Kabul belgesini imzalat", sub: "Kurum seni kabul ettiğini imzayla gösterir.", items: [
+    ["📋", "Doğru formu (EK-1) staj türüne göre <b>sistem verir</b> — sen seçmezsin."],
+    ["✒️", "Kurum yetkilisi <b>imzalar ve kaşeler</b> — ikisi de şart."],
+    ["⏰", "Staj başlangıcından <b>en az 20 gün önce</b> hazır olmalı."]] },
+  { icon: "📝", title: "3 · Başvurunu doldur", sub: "6 kısa adım — hepsi bu sitede.", items: [
+    ["🪜", "Her adım kendiliğinden kaydedilir; yarıda bırakıp sonra devam edebilirsin."],
+    ["🧮", "İş günü hesabını (20 iş günü) <b>sistem yapar</b>, tatilleri o düşünür."],
+    ["🚫", "Eksik varken başvuru <b>gönderilemez</b> — yanlış yapman imkânsız."]] },
+  { icon: "🛡️", title: "4 · Onaydan staja", sub: "Bu bölümde işin çoğu bizde.", items: [
+    ["🔎", "Komisyon başvurunu inceler (genellikle 5 iş günü) — sonucu bildirimle alırsın."],
+    ["🏥", "Sigortanı <b>üniversite yapar</b>; sen e-Devlet'ten sadece kontrol edersin."],
+    ["💻", "Son adım: OBS'de staj dersini seçmek."]] },
+  { icon: "✍️", title: "5 · Staj günlerin", sub: "Staj boyunca iki alışkanlık edin.", items: [
+    ["📄", "Her iş günü için <b>1 defter sayfası</b> — el yazısıyla, o gün doldur."],
+    ["✅", "Her sayfayı işyerindeki sorumluna <b>imzalat</b> — son güne bırakma."],
+    ["🎬", "Vlog çek: <b>ilk, orta ve son günlerden</b> bölümler, toplam en az 10 dakika."]] },
+  { icon: "📗", title: "6 · Teslim ve sonuç", sub: "Staj bitti — iki teslimat kaldı.", items: [
+    ["⬆️", "Defterini tek PDF olarak <b>buraya</b> yüklersin — kontrol listesi sana eşlik eder."],
+    ["✉️", "Sicil fişini kapalı zarfla bölüm sekreterliğine <b>elden</b> götürürsün."],
+    ["🎓", "Komisyon değerlendirir, notun OBS'ye işlenir. Hepsi bu!"]] },
+];
+function tour(n = 0) {
+  nav(null);
+  curRoute = "tour";
+  const t = TOUR[n], son = n === TOUR.length - 1;
+  el(`<div class="tour">
+    <div class="ticon">${t.icon}</div>
+    <h1>${t.title}</h1>
+    <p class="tsub">${t.sub}</p>
+    <div class="titems">
+      ${t.items.map(([i, x]) => `<div class="titem"><span class="ti">${i}</span><span>${x}</span></div>`).join("")}
+    </div>
+    <div class="tdots">${TOUR.map((_, i) => `<i class="${i === n ? "on" : ""}"></i>`).join("")}</div>
+    <div>
+      ${n > 0 ? `<button class="quiet" onclick="tour(${n - 1})">← Geri</button>` : ""}
+      <button class="big" onclick="${son ? "go('home')" : `tour(${n + 1})`}">${son ? "Başlayalım 🚀" : "Devam →"}</button>
+    </div>
+    ${son ? "" : `<p style="margin-top:6px"><button class="link" style="font-size:14px;color:var(--mut)" onclick="go('home')">Turu geç</button></p>`}
+  </div>`);
+}
+
 /* ───────── Stajım (durum odaklı ana ekran) ───────── */
 function home() {
   nav("home");
@@ -965,6 +1019,8 @@ function guideScreen() {
   el(`<h1>Staj süreci</h1>
     <p class="sub">12 adım, sırasıyla. Ezberlemene gerek yok — sisteme her girdiğinde hangi adımdaysan
     onu zaten gösteririz. Bir adımın ayrıntısını görmek için üzerine tıkla.</p>
+    <p style="margin:-8px 0 16px"><button class="link" onclick="tour(0)">🎬 Tanıtım turunu izle</button>
+    <span class="muted" style="font-size:14px">— süreci 1 dakikada slaytlarla anlatır</span></p>
     <div class="tl">
       ${REHBER.map(([ad, ne, gorev], i) => `
         <div class="tl-row ${i < now ? "done" : i === now ? "now" : ""} ${i === now ? "open" : ""}"
@@ -1094,10 +1150,17 @@ async function sendQ() {
 
 /* ───────── Yönlendirme ───────── */
 const routes = { home, wizard, sgk: sgkScreen, deliver: deliverScreen, docs: docsScreen,
-  help: helpScreen, accept: acceptScreen, guide: guideScreen, profil: profilScreen };
+  help: helpScreen, accept: acceptScreen, guide: guideScreen, profil: profilScreen,
+  tur: () => tour(0) };
 async function go(name) {
   curRoute = routes[name] ? name : "home";
   try { await refresh(); } catch { return loginScreen(); }
+  // İlk kez gelen ve hiç başvurusu olmayan öğrenciye önce tanıtım turu açılır
+  // (bir kez; sonra Rehber'den istediğinde yeniden izler).
+  if (curRoute === "home" && !ME.applications.length && !localStorage.getItem("turGoruldu")) {
+    localStorage.setItem("turGoruldu", "1");
+    return tour(0);
+  }
   (routes[name] || home)();
 }
 
