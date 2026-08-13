@@ -34,7 +34,7 @@ function nav(active) {
 const STAGES = ["Staj yeri bulma", "Belgeleri hazırlama", "Başvuru", "Komisyon incelemesi", "Onay",
   "SGK kontrolü", "OBS kaydı", "Staj", "Defter hazırlama", "Teslim", "Değerlendirme", "Tamamlandı"];
 const STAGE_NO = { noplace: 0, draft: 2, review: 3, fix: 3, rejected: 3, sgk: 5, obs: 6,
-  ready: 6, during: 7, deliver: 9, evaluating: 10, fix_defter: 9, accepted: 12 };
+  ready: 7, during: 7, deliver: 9, evaluating: 10, fix_defter: 9, accepted: 12 };
 
 function prog(now) {
   const pct = Math.round(now / STAGES.length * 100);

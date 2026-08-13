@@ -482,4 +482,15 @@ app.get("/api/admin/file/:id", auth("admin"), (req, res) => {
   res.download(path.join(UPLOAD_DIR, doc.filename), doc.orig_name || doc.filename);
 });
 
+// Yalnız demo modunda: tek adreste oturum açıp ana sayfaya yönlendirir
+// (tanıtım ve ekran görüntüsü almayı kolaylaştırır; canlıda kapalıdır).
+if (process.env.DEMO_VERI !== "0") {
+  app.get("/demo-giris/:no", (req, res) => {
+    const u = db.prepare("SELECT * FROM users WHERE ogrenci_no=?").get(req.params.no);
+    if (!u) return res.status(404).send("bulunamadı");
+    setSession(res, u.id);
+    res.redirect(u.role === "admin" ? "/admin.html" : "/");
+  });
+}
+
 app.listen(PORT, () => console.log(`Staj portalı: http://localhost:${PORT}`));
