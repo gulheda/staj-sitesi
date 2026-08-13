@@ -10,9 +10,10 @@ const { checkDates, countWorkdays, trDate } = require("./lib/dates");
 // tercihi (komisyon onayına tabi) hesaba katılır.
 const dateOptsOf = (appRow) => ({
   allowedDays: appRow?.tur === "donem" && appRow.calisma_gunleri
-    ? appRow.calisma_gunleri.split(",").map(Number).filter(n => n >= 1 && n <= 5)
+    ? appRow.calisma_gunleri.split(",").map(Number).filter(n => n >= 1 && n <= 6)
     : null,
   saturday: !!appRow?.cumartesi,
+  tur: appRow?.tur || null,
 });
 // EK-1 notu: kabul formu staj başlangıcından 20 gün önce teslim edilir.
 const minStartDate = () => new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10);
@@ -87,8 +88,13 @@ const upload = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ok = [".pdf", ".jpg", ".jpeg", ".png"].includes(path.extname(file.originalname).toLowerCase());
-    cb(ok ? null : new Error("Bu alana PDF veya fotoğraf (JPG, PNG) yükleyebilirsin."), ok);
+    // EK-3 bir Excel tablosudur; diğer belgeler PDF/fotoğraf olarak gelir.
+    const ek3 = req.params?.kind === "ek3";
+    const allowed = [".pdf", ".jpg", ".jpeg", ".png", ...(ek3 ? [".xlsx", ".xls"] : [])];
+    const ok = allowed.includes(path.extname(file.originalname).toLowerCase());
+    cb(ok ? null : new Error(ek3
+      ? "Bu alana Excel (XLSX), PDF veya fotoğraf yükleyebilirsin."
+      : "Bu alana PDF veya fotoğraf (JPG, PNG) yükleyebilirsin."), ok);
   },
 });
 
@@ -250,10 +256,10 @@ app.patch("/api/application", auth(), (req, res) => {
 
 app.post("/api/application/check-dates", auth(), (req, res) => {
   const days = Array.isArray(req.body.days) && req.body.days.length
-    ? req.body.days.map(Number).filter(n => n >= 1 && n <= 5) : null;
+    ? req.body.days.map(Number).filter(n => n >= 1 && n <= 6) : null;
   const allowedDays = req.body.tur === "donem" ? (days || []) : null;
   const out = checkDates(req.body.start, req.body.end,
-    { allowedDays, saturday: !!req.body.saturday, minStart: minStartDate() });
+    { allowedDays, saturday: !!req.body.saturday, minStart: minStartDate(), tur: req.body.tur || null });
   // Diğer stajla tarih çakışması: kural ihlali oluşmadan burada yakalanır.
   const ov = overlapProblem(req.user.id, +(req.body.app_id || 0), req.body.start, req.body.end);
   if (ov) { out.ok = false; out.problems.push(ov); out.suggestion = null; }
@@ -276,9 +282,13 @@ app.post("/api/application/submit", auth(), (req, res) => {
   if (!dateCheck.ok) missing.push("geçerli staj tarihleri");
   const ov = overlapProblem(req.user.id, appRow.id, appRow.start_date, appRow.end_date);
   if (ov) return res.status(400).json({ error: ov });
-  const hasKabul = db.prepare(
-    "SELECT COUNT(*) c FROM documents WHERE application_id=? AND kind='kabul'").get(appRow.id).c > 0;
-  if (!hasKabul) missing.push("kabul belgesi (yüklenmemiş)");
+  const docKinds = new Set(db.prepare(
+    "SELECT DISTINCT kind FROM documents WHERE application_id=?").all(appRow.id).map(r => r.kind));
+  if (!docKinds.has("kabul")) missing.push("kabul belgesi EK-1 (yüklenmemiş)");
+  if (appRow.ucret === "evet") {
+    if (!docKinds.has("ek2")) missing.push("ücret katkısı formu EK-2 (yüklenmemiş)");
+    if (!docKinds.has("ek3")) missing.push("ücret katkısı listesi EK-3 (yüklenmemiş)");
+  }
   if (missing.length)
     return res.status(400).json({ error: "Başvuru gönderilemedi. Eksik: " + missing.join(", ") + "." });
   const win = applicationWindow(appRow.tur);
@@ -299,7 +309,7 @@ app.post("/api/upload/:kind", auth(), (req, res) => {
       return res.status(400).json({ error: msg });
     }
     const kind = req.params.kind;
-    if (!["kabul", "defter"].includes(kind)) return res.status(400).json({ error: "Bilinmeyen belge türü." });
+    if (!["kabul", "ek2", "ek3", "defter"].includes(kind)) return res.status(400).json({ error: "Bilinmeyen belge türü." });
     if (!req.file) return res.status(400).json({ error: "Dosya seçilmedi." });
     const appRow = getApp(req);
     if (!appRow) return res.status(400).json({ error: "Önce başvuru oluşturmalısın." });
@@ -307,7 +317,7 @@ app.post("/api/upload/:kind", auth(), (req, res) => {
     db.prepare("INSERT INTO documents (application_id, kind, filename, orig_name) VALUES (?,?,?,?)")
       .run(appRow.id, kind, req.file.filename, req.file.originalname);
 
-    if (kind === "kabul" && appRow.status === "fix") {
+    if (["kabul", "ek2", "ek3"].includes(kind) && appRow.status === "fix") {
       db.prepare("UPDATE applications SET status='submitted', fix_note=NULL, updated_at=datetime('now') WHERE id=?")
         .run(appRow.id);
       notify(req.user.id, "Yeni belgen komisyona iletildi. Sonuçlanınca haber vereceğiz.");

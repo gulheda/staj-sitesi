@@ -87,73 +87,38 @@ function lettersOnly(elm) {
   elm.value = elm.value.replace(/[0-9]/g, "");
 }
 
-function loginScreen(msg, first) {
+function loginScreen(msg) {
   $("topbar").style.display = "none";
-  // İlk açılışta net bir seçim formu; "daha önce giriş yaptım" diyen için
-  // bu soru bir daha gösterilmez (tarayıcı hatırlar).
-  if (first === undefined && !msg) {
-    if (localStorage.getItem("girisModu") === "normal") first = false;
-    else {
-      el(`
-      <div style="max-width:560px;margin:30px auto">
-        <h1>BAÜN Staj Portalı</h1>
-        <p class="sub">Bilgisayar Mühendisliği staj işlemlerinin tamamı burada.<br>Sana uygun olanı seç:</p>
-        <label class="radio" onclick="loginScreen('',true)" style="padding:18px">
-          <span><span style="font-weight:700;font-size:17px">İlk kez gireceğim</span><br>
-          <span class="muted">Şifrem yok — öğrenci numaram ve TC kimlik numaramla kimliğimi doğrulayacağım</span></span></label>
-        <label class="radio" onclick="localStorage.setItem('girisModu','normal');loginScreen('',false)" style="padding:18px">
-          <span><span style="font-weight:700;font-size:17px">Daha önce giriş yaptım</span><br>
-          <span class="muted">Öğrenci numaram ve şifrem var</span></span></label>
-      </div>`);
-      return;
-    }
-  }
+  // Tek form, tek yol: ilk kez giren şifre alanına TC'sini yazar,
+  // sistem onu tanıyıp şifre oluşturmaya götürür. Ayrı "ilk giriş" ekranı yoktur.
   el(`
     <div style="max-width:560px;margin:30px auto">
-      <h1>${first ? "İlk giriş" : "Giriş yap"}</h1>
-      <p class="sub">${first ? "Kimliğini doğrulayalım — sonra kendi şifreni oluşturacaksın." : "Öğrenci numaran ve şifrenle gir."}</p>
+      <h1>BAÜN Staj Portalı</h1>
+      <p class="sub">Bilgisayar Mühendisliği staj işlemlerinin tamamı burada.</p>
       ${msg ? errBox(msg) : ""}
       <label>Öğrenci numaran</label>
       <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Öğrenci numaran (sadece rakam)"
-        autocomplete="username" oninput="digitsOnly(this,12);loginCheck(${!!first})">
-      ${first ? `
-      <label>TC kimlik numaran</label>
-      <input id="tc" type="text" inputmode="numeric" maxlength="11" placeholder="11 haneli TC kimlik numaran"
-        oninput="digitsOnly(this,11);loginCheck(true)">
-      <button class="big" id="loginBtn" disabled onclick="doLogin(true)">Kimliğimi doğrula ve başla</button>
-      <p class="why" id="lwhy"></p>
-      <p class="center"><button class="link" style="font-size:15px" onclick="localStorage.setItem('girisModu','normal');loginScreen('',false)">Şifrem zaten var — normal giriş</button></p>
-      ` : `
+        autocomplete="username" oninput="digitsOnly(this,12)">
       <label>Şifren</label>
-      <input id="pw" type="password" maxlength="64" placeholder="Şifreni yaz" autocomplete="current-password">
-      <button class="big" id="loginBtn" onclick="doLogin(false)">Giriş yap</button>
+      <input id="pw" type="password" maxlength="64" placeholder="Şifreni yaz" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="big" id="loginBtn" onclick="doLogin()">Giriş yap</button>
+      <div class="box info" style="margin-top:16px">İlk kez mi giriyorsun? Şifre alanına <b>TC kimlik numaranı</b> yaz —
+        girişten sonra kendi şifreni oluşturacaksın.</div>
       <p class="center" style="margin-top:12px">
         <button class="link" style="font-size:13.5px"
           onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button>
-        <span class="muted"> · </span>
-        <button class="link" style="font-size:13.5px" onclick="loginScreen('',true)">İlk girişini yapacaksan tıkla</button>
-      </p>`}
+      </p>
     </div>`);
 }
 
-// İlk giriş modunda buton, numara ve 11 haneli TC tamamlanmadan açılmaz.
-function loginCheck(first) {
-  if (!first) return;
-  const noOk = ($("no").value || "").length >= 8;
-  const tcOk = ($("tc").value || "").length === 11;
-  $("loginBtn").disabled = !(noOk && tcOk);
-  $("lwhy").textContent = !noOk ? "Devam etmek için: öğrenci numaranı yaz"
-    : !tcOk ? `Devam etmek için: TC'nin 11 hanesini de yaz (${($("tc").value || "").length}/11)` : "";
-}
-
-async function doLogin(first) {
+async function doLogin() {
   try {
-    const pass = first ? $("tc").value : $("pw").value;
-    const r = await api("/login", { method: "POST", json: { no: $("no").value, pass } });
+    const r = await api("/login", { method: "POST", json: { no: $("no").value, pass: $("pw").value } });
     if (r.firstLogin) return setPassScreen(r.name);
     if (r.role === "admin") { location.href = "/admin.html"; return; }
     await refresh(); go("home");
-  } catch (e) { loginScreen(e.message, !!first); }
+  } catch (e) { loginScreen(e.message); }
 }
 
 function setPassScreen(name, msg) {
@@ -172,7 +137,6 @@ function setPassScreen(name, msg) {
 async function doSetPass() {
   try {
     await api("/set-password", { method: "POST", json: { password: $("pw1").value } });
-    localStorage.setItem("girisModu", "normal"); // artık normal kullanıcı — ilk giriş sorusu tekrar çıkmaz
     await refresh(); go("home");
   } catch (e) { setPassScreen(ME?.user?.name || "", e.message); }
 }
@@ -208,13 +172,17 @@ function home() {
       • <button class="link" onclick="go('guide')">Sürecin devamında seni neler bekliyor, göz at</button><br>
       • 🎬 Vlog için fikir toplamaya başla — stajın ilk gününden çekim yapman gerekecek</div>`;
 
-  if (s === "fix") h = `
+  if (s === "fix") {
+    const gerekli = [BELGE_YUKLE.kabul];
+    if (a.ucret === "evet") gerekli.push(BELGE_YUKLE.ek2, BELGE_YUKLE.ek3);
+    h = `
     <h1>Bir belgeyi düzeltmen gerekiyor.</h1>
     <p class="sub">Komisyonun notu:</p>
     <div class="box warn"><b>${a.fix_note || "Belgende düzeltme istendi."}</b></div>
-    <div class="upload" id="up" onclick="pickFile('kabul')">Belgeyi buraya yükle: <u>dosya seç</u><br>
-      <span class="muted">PDF veya fotoğraf · en fazla 10 MB</span></div>
+    ${gerekli.length > 1 ? '<p class="hint">Yalnızca komisyonun notta belirttiği belgeyi yeniden yüklemen yeterli.</p>' : ""}
+    ${gerekli.map(b => uploadBox(b, false)).join("")}
     <p class="after">Yeni belgen doğrudan komisyona gidecek.</p>`;
+  }
 
   if (s === "rejected") h = `
     <h1>Başvurun kabul edilmedi.</h1>
@@ -301,7 +269,7 @@ function home() {
   </div>`;
 
   if (a && !["draft", "noplace"].includes(s)) {
-    const gunAd = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum" };
+    const gunAd = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum", 6: "Cts" };
     const gunler = (a.calisma_gunleri || "").split(",").filter(Boolean).map(g => gunAd[g]).join("-");
     side += `<div class="sidecard"><h4>${ME.applications.length > 1 ? a.staj_no + ". staj başvurun" : "Başvurun"}</h4>
       <p class="hint" style="margin:0 0 8px">Gönderdiğin bilgilerin özeti — her an buradan bakabilirsin.</p>
@@ -328,14 +296,15 @@ function home() {
   // Staj sekmeleri en üstte: mevcut başvurular + (3.-4. sınıfsa) "2. stajını da aç".
   const canSecond = (ME.user.sinif ?? 3) >= 3 &&
     ME.applications.filter(x => x.status !== "rejected").length === 1 && a && s !== "noplace";
+  // Seçili staj sekmesi koyu görünür — hangi stajın ekranında olduğun hiç karışmaz.
+  // İki başvuru komisyonda da öğrencide de ayrı ayrı ilerler; sekme sadece aralarında geçiş yapar.
   const tabs = (ME.applications.length > 1 || canSecond)
-    ? `<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
-        ${ME.applications.map(x => `<button class="${x.id === a?.id ? "big" : "quiet"}"
-          style="width:auto;max-width:none;padding:9px 18px;font-size:15px;margin:0"
-          onclick="switchStaj(${x.id})">${x.staj_no}. Staj · ${KISA[x.stage] || x.status}</button>`).join("")}
-        ${canSecond ? `<button class="quiet" style="width:auto;max-width:none;padding:9px 18px;font-size:15px;margin:0;border-style:dashed"
-          onclick="go('accept')">+ 2. stajını da başlat</button>` : ""}
+    ? `<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        ${ME.applications.map(x => `<button class="tab ${x.id === a?.id ? "on" : ""}"
+          onclick="switchStaj(${x.id})">${x.id === a?.id ? "▸ " : ""}${x.staj_no}. Staj · ${KISA[x.stage] || x.status}</button>`).join("")}
+        ${canSecond ? `<button class="tab add" onclick="go('accept')">+ 2. stajını da başlat</button>` : ""}
        </div>
+       ${ME.applications.length > 1 ? `<p class="hint" style="margin:-12px 0 18px">Şu an <b>${a.staj_no}. stajının</b> ekranındasın. İki başvurun birbirinden bağımsız ilerler; diğerine geçmek için üstteki açık renkli sekmeye tıkla.</p>` : ""}
        ${canSecond ? '<p class="hint" style="margin:-12px 0 18px">3. ve 4. sınıflar iki stajı aynı dönemde yapabilir; tarihler çakışmadığı sürece ikisi ayrı ayrı ilerler.</p>' : ""}` : "";
 
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
@@ -463,7 +432,7 @@ async function wizard(msg) {
       oninput="lettersOnly(this);stepCheck(3)">
     <label>Unvanı</label>
     <select id="munvan" onchange="$('dk').style.display=this.value==='Bilmiyorum'?'block':'none'">
-      ${["Bilgisayar Mühendisi", "Yazılım Mühendisi", "İlgili alanda mühendis", "Bilmiyorum"]
+      ${["Bilgisayar Mühendisi", "Yazılım Mühendisi", "Bilmiyorum"]
         .map(u => `<option ${a.muh_unvan === u ? "selected" : ""}>${u}</option>`).join("")}
     </select>
     <div id="dk" style="display:${a.muh_unvan === "Bilmiyorum" ? "block" : "none"}" class="box info">
@@ -475,7 +444,9 @@ async function wizard(msg) {
   if (n === 4) {
     const donem = a.tur === "donem";
     const savedDays = (a.calisma_gunleri || "").split(",").filter(Boolean).map(Number);
-    const DAY_NAMES = [[1, "Pzt"], [2, "Sal"], [3, "Çar"], [4, "Per"], [5, "Cum"]];
+    // Cumartesi de seçilebilir bir gündür (komisyon onayına tabi);
+    // varsayılan olarak yalnız hafta içi işaretli gelir. Pazar hiç yoktur.
+    const DAY_NAMES = [[1, "Pzt"], [2, "Sal"], [3, "Çar"], [4, "Per"], [5, "Cum"], [6, "Cts"]];
     body = `
     <h1>Başlangıç tarihini seç, gerisini biz hesaplayalım.</h1>
     <p class="sub">Sen başlangıcı seç; 20 iş gününü tamamlayan bitiş tarihini sistem bulur.
@@ -484,13 +455,14 @@ async function wizard(msg) {
     <label>Hangi günler çalışacaksın? <span class="muted">(en az 3 gün)</span></label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
       ${DAY_NAMES.map(([v, t]) => `<label class="radio" style="margin:0;padding:10px 14px">
-        <input type="checkbox" class="wday" value="${v}" ${savedDays.length ? (savedDays.includes(v) ? "checked" : "") : "checked"}
-        onchange="onDatesInput()"> ${t}</label>`).join("")}
+        <input type="checkbox" class="wday" value="${v}" ${savedDays.length ? (savedDays.includes(v) ? "checked" : "") : (v <= 5 ? "checked" : "")}
+        onchange="onDatesInput(true)"> ${t}</label>`).join("")}
     </div>
-    <p class="hint">Ders programınla çakışmayan günleri işaretli bırak.</p>` : ""}
+    <p class="hint">Ders programınla çakışmayan günleri işaretli bırak — en az 3 gün seçili kalmalı.
+    Cumartesi seçersen komisyon onayına tabidir; pazar günleri hiçbir koşulda sayılmaz.</p>` : `
     <label class="check" style="border:0;margin-top:14px"><input type="checkbox" id="cmt" ${a.cumartesi ? "checked" : ""}
       onchange="onDatesInput(true)"> Cumartesileri de çalışacağım
-      <span class="muted">(komisyon onayına tabidir; pazar günleri hiçbir koşulda sayılmaz)</span></label>
+      <span class="muted">(komisyon onayına tabidir; pazar günleri hiçbir koşulda sayılmaz)</span></label>`}
     <label>Başlangıç</label>
     <input id="d1" type="date" value="${a.start_date || ""}" min="${minStartISO()}" onchange="onDatesInput()">
     <p class="hint">Kabul formu staj başlangıcından en az <b>20 gün önce</b> teslim edilmeli — bu yüzden en erken ${fmtDate(minStartISO())} seçebilirsin.</p>
@@ -500,28 +472,38 @@ async function wizard(msg) {
     <label>İşletme staj ücreti ödeyecek mi?</label>
     <select id="ucret">${[["hayir", "Hayır"], ["evet", "Evet"], ["bilmiyorum", "Bilmiyorum"]]
       .map(([v, t]) => `<option value="${v}" ${a.ucret === v ? "selected" : ""}>${t}</option>`).join("")}</select>
-    <p class="hint">“Evet” dersen ücret katkısı formu (EK-2) sonraki adımda listene eklenir.
-    Kamu kurumunda staj yapıyorsan EK-2 gerekmez.</p>
+    <p class="hint">“Evet” dersen sonraki adımda ücret katkısı formu (EK-2) ve başvuru evrakı (EK-3) için
+    iki yükleme alanı daha açılır. Kamu kurumunda staj yapıyorsan EK-2/EK-3 gerekmez.</p>
     <button class="big" id="d5next" disabled onclick="wSaveDates()">Devam et</button>
     <p class="why" id="why">${a.start_date ? "" : "Devam etmek için başlangıç tarihini seç."}</p>${backB}`;
   }
 
   if (n === 5) {
-    const hasKabul = ME.documents.some(d => d.kind === "kabul");
+    // Her belgenin kendi yükleme kutusu vardır; komisyon her birini ayrı görür.
+    const kinds = new Set(ME.documents.map(d => d.kind));
+    const ucretli = a.ucret === "evet";
+    const gerekli = [BELGE_YUKLE.kabul];
+    if (ucretli) gerekli.push(BELGE_YUKLE.ek2, BELGE_YUKLE.ek3);
+    const eksikAd = gerekli.filter(b => !kinds.has(b.kind)).map(b => b.ad);
     body = `
-    <h1>Kabul belgesini yükle.</h1>
-    <p class="sub">Kuruma imzalattığın belge. İmza <b>ve</b> kaşe olduğundan emin ol.</p>
-    ${a.ucret === "evet" ? '<div class="box info">Ücret ödeneceği için <b>EK-2 (ücret katkısı) belgesi</b> de gerekiyor — pilot sürümde kabul belgesiyle birlikte tek dosyada yükleyebilirsin.</div>' : ""}
-    <div class="upload ${hasKabul ? "done" : ""}" id="up" onclick="pickFile('kabul')">
-      ${hasKabul ? "✓ Belgeni aldık · <u>değiştir</u>" : "Belgeyi buraya yükle: <u>dosya seç</u><br><span class='muted'>PDF veya fotoğraf · en fazla 10 MB</span>"}</div>
-    <button class="big" id="nextBtn" ${hasKabul ? "" : "disabled"} onclick="wStep(6)">Devam et</button>
-    <p class="why" id="why">${hasKabul ? "" : "Devam etmek için imzalı ve kaşeli kabul belgeni yüklemelisin."}</p>${backB}`;
+    <h1>${ucretli ? "Belgelerini yükle." : "Kabul belgesini yükle."}</h1>
+    <p class="sub">${ucretli
+      ? "Ücret ödeneceği için üç belge gerekiyor. Her birini kendi kutusuna yükle — komisyon üçünü de ayrı ayrı kontrol edecek."
+      : "Kuruma imzalattığın belge. İmza <b>ve</b> kaşe olduğundan emin ol."}</p>
+    ${gerekli.map(b => uploadBox(b, kinds.has(b.kind))).join("")}
+    <button class="big" id="nextBtn" ${eksikAd.length ? "disabled" : ""} onclick="wStep(6)">Devam et</button>
+    <p class="why" id="why">${eksikAd.length ? "Devam etmek için yüklemen gerekenler: " + eksikAd.join(" · ") : ""}</p>${backB}`;
   }
 
   if (n === 6) {
     // Son adım asla hata vermez: eksikler burada listelenir, buton eksik varken kapalıdır.
+    const kinds6 = new Set(ME.documents.map(d => d.kind));
     const eksik = [];
-    if (!ME.documents.some(d => d.kind === "kabul")) eksik.push([5, "Kabul belgesi yüklenmedi"]);
+    if (!kinds6.has("kabul")) eksik.push([5, "Kabul belgesi (EK-1) yüklenmedi"]);
+    if (a.ucret === "evet") {
+      if (!kinds6.has("ek2")) eksik.push([5, "Ücret katkısı formu (EK-2) yüklenmedi"]);
+      if (!kinds6.has("ek3")) eksik.push([5, "Ücret katkısı başvuru evrakı (EK-3) yüklenmedi"]);
+    }
     if (a.muh_unvan === "Bilmiyorum") eksik.push([3, "Sorumlu mühendisin unvanı seçilmedi"]);
     if (!a.start_date || !a.end_date) eksik.push([4, "Staj tarihleri seçilmedi"]);
     if (!a.kurum_adi) eksik.push([2, "Kurum bilgisi eksik"]);
@@ -531,7 +513,9 @@ async function wizard(msg) {
       ${a.tur === "donem" ? "Dönem içi staj" : "Yaz stajı"} · ${a.kurum_adi || "—"}<br>
       ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}${ME.progress ? ` (${ME.progress.total} iş günü ✓)` : ""}<br>
       Sorumlu: ${a.muh_ad || "—"}, ${a.muh_unvan || "—"}<br>
-      Kabul belgesi ${ME.documents.some(d => d.kind === "kabul") ? "✓ yüklendi" : "— yüklenmedi"}
+      Kabul belgesi (EK-1) ${kinds6.has("kabul") ? "✓ yüklendi" : "— yüklenmedi"}
+      ${a.ucret === "evet" ? `<br>Ücret katkısı formu (EK-2) ${kinds6.has("ek2") ? "✓ yüklendi" : "— yüklenmedi"}<br>
+      Ücret katkısı başvuru evrakı (EK-3) ${kinds6.has("ek3") ? "✓ yüklendi" : "— yüklenmedi"}` : ""}
       <p style="margin-top:8px"><button class="link" onclick="wStep(1)">Bir şeyi değiştir</button></p>
     </div>
     ${eksik.length ? `<div class="box warn"><b>Göndermeden önce şunlar tamamlanmalı:</b><br>
@@ -683,9 +667,11 @@ function applySuggestion() {
 }
 async function wSaveDates() {
   if (!lastDateCheck || !lastDateCheck.ok) { onDatesInput(); return; }
+  // Dönem içinde cumartesi ayrı kutu değil, gün seçimlerinden gelir.
+  const donem = wizardApp.tur === "donem";
   wSave(5, { start_date: $("d1").value, end_date: $("d2").value, ucret: $("ucret").value,
-    cumartesi: $("cmt")?.checked ? 1 : 0,
-    calisma_gunleri: wizardApp.tur === "donem" ? pickedDays().join(",") : null });
+    cumartesi: (donem ? pickedDays().includes(6) : $("cmt")?.checked) ? 1 : 0,
+    calisma_gunleri: donem ? pickedDays().join(",") : null });
 }
 
 async function wSubmit() {
@@ -699,24 +685,41 @@ async function wSubmit() {
   } catch (e) { wizard(e.message); }
 }
 
-/* ───────── Dosya yükleme ───────── */
+/* ───────── Dosya yükleme ─────────
+   Başvuru belgeleri: her tür (EK-1, EK-2, EK-3) kendi kutusuna yüklenir,
+   böylece komisyon da öğrenci de hangisinin eksik olduğunu tek bakışta görür. */
+const BELGE_YUKLE = {
+  kabul: { kind: "kabul", ad: "Kabul belgesi (EK-1)",
+    info: "Kuruma imzalattığın form — imza <b>ve</b> kaşe olduğundan emin ol." },
+  ek2: { kind: "ek2", ad: "Ücret katkısı formu (EK-2)",
+    info: 'Bilgisayarda doldurulur; sen ve işletme yetkilisi imzalar. <a href="/belgeler/ek2-ucret-issizlik-fonu-formu.pdf" download>Boş formu indir</a>. Kamu kurumunda staj yapıyorsan gerekmez — "ücret ödenecek mi" sorusuna dönüp cevabını değiştirebilirsin.' },
+  ek3: { kind: "ek3", ad: "Ücret katkısı başvuru evrakı (EK-3)",
+    info: 'Excel tablosunda kendi satırını doldurursun. <a href="/belgeler/staj-ucreti-fon-katkisi-basvuru-evraki.xlsx" download>Boş evrakı indir</a>.' },
+};
+function uploadBox(b, done) {
+  return `<label style="margin-top:14px">${b.ad}</label>
+    <div class="upload ${done ? "done" : ""}" id="up-${b.kind}" onclick="pickFile('${b.kind}')">
+      ${done ? "✓ Aldık · <u>değiştir</u>"
+        : `${b.info}<br>Buraya yükle: <u>dosya seç</u> <span class='muted'>· en fazla 10 MB</span>`}</div>`;
+}
+
 function pickFile(kind) {
   const inp = document.createElement("input");
   inp.type = "file";
-  inp.accept = ".pdf,.jpg,.jpeg,.png";
+  inp.accept = ".pdf,.jpg,.jpeg,.png" + (kind === "ek3" ? ",.xlsx,.xls" : "");
   inp.onchange = async () => {
     if (!inp.files[0]) return;
     const fd = new FormData();
     fd.append("file", inp.files[0]);
     if (ME.application) fd.append("app_id", ME.application.id);
-    const box = $("up");
+    const box = $("up-" + kind) || $("up");
     if (box) box.textContent = "Yükleniyor…";
     try {
       const r = await fetch("/api/upload/" + kind, { method: "POST", body: fd });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       await refresh();
-      if (kind === "kabul" && ME.stage === "review") {
+      if (["kabul", "ek2", "ek3"].includes(kind) && ME.stage === "review") {
         el(`<div class="center" style="margin-top:30px"><div class="icon">✅</div></div>
           <h1 class="center">Belgen komisyona gitti.</h1>
           <p class="sub center">Sonuçlanınca haber vereceğiz. Şu an yapman gereken bir şey yok.</p>
@@ -896,9 +899,11 @@ function docsScreen() {
     ? "Başvurudan önce gerekenler"
     : ["sgk", "obs", "ready", "during"].includes(ME.stage)
       ? "Staj sırasında kullanacakların" : "Teslim ederken gerekenler";
+  const AD = { kabul: "kabul belgesi (EK-1)", ek2: "ücret katkısı formu (EK-2)",
+    ek3: "ücret katkısı evrakı (EK-3)", defter: "staj defteri" };
   const mine = ME.documents.length
     ? `<div class="box ok" style="margin-top:0">✅ Yüklediklerin: ${ME.documents.map(d =>
-        `${d.kind === "kabul" ? "kabul belgesi" : "staj defteri"} (${d.uploaded_at.slice(0, 10)})`).join(" · ")}</div>` : "";
+        `${AD[d.kind] || d.kind} (${d.uploaded_at.slice(0, 10)})`).join(" · ")}</div>` : "";
   const digerleri = Object.entries(BELGELER).filter(([g]) => g !== stageGroup);
   el(`<div data-full>
     <h1>Belgelerim</h1>
@@ -926,7 +931,7 @@ function docsScreen() {
 const REHBER = [
   ["Staj yeri bulma", "Bilgisayar/yazılım alanında sorumlu mühendisi olan bir kurum bulursun.", "Kurum aramak; emin değilsen kuruma sistemin verdiği hazır soruyu sormak."],
   ["Belgeleri hazırlama", "Sistem staj türüne göre doğru kabul formunu verir; kuruma imzalatıp kaşeletirsin.", "Belgeyi indirip imzalatmak."],
-  ["Başvuru", "7 kısa adımda başvuru: bilgiler, tür, kurum, mühendis, tarihler, belge, kontrol. Her adım otomatik kaydedilir.", "Formu doldurmak — iş günü hesabını sistem yapar."],
+  ["Başvuru", "6 kısa adımda başvuru: bilgiler, kurum, mühendis, tarihler, belge, kontrol. Her adım otomatik kaydedilir.", "Formu doldurmak — iş günü hesabını sistem yapar."],
   ["Komisyon incelemesi", "Komisyon başvurunu ve belgeni inceler; genellikle 5 iş günü sürer.", "Hiçbir şey — sonucu bildirimle alırsın."],
   ["Onay", "Başvurun onaylanır (veya düzeltme istenir; ne yapacağın açıkça yazar).", "Varsa düzeltmeyi yapmak."],
   ["SGK kontrolü", "Sigortanı üniversite yapar; sen e-Devlet'ten görünüp görünmediğine bakarsın.", "Staj başlamadan 3 gün önce 2 dakikalık kontrol."],
