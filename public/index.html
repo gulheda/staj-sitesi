@@ -113,24 +113,15 @@
   .tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
   .tab.add{border-style:dashed;font-weight:500}
 
-  /* ── İki staj = iki ayrı zemin: 1. staj beyaz, 2. staj gri.
-        Sayfanın tamamı staja göre renk değiştirir; hangi stajda
-        olduğun okumadan, sadece renkten anlaşılır. ── */
+  /* ── İki staj ayrımı sade tutulur: sayfa aynı kalır; 2. stajdayken
+        yalnız üst şerit, seçili sekme, kartın üst çizgisi ve yandaki
+        kutucuklar açık maviye döner — geçtiğini bilmen için yeterli. ── */
   .stajbar{border-radius:10px;padding:10px 18px;margin-bottom:18px;font-weight:700;font-size:15.5px;
-           background:var(--vurgu);color:var(--accent);border:1px solid #d8dce2}
-  body.staj2{background:#e4e4e8}
-  body.staj2 main{background:#f1f1f4;border-color:#cfcfd6}
-  body.staj2 .colmain,body.staj2 .sidecard,body.staj2 .panel{background:#f1f1f4;border-color:#cfcfd6}
-  body.staj2 .colmain{border-top-color:#52525b}
-  body.staj2 .stajbar{background:#52525b;color:#fff;border-color:#52525b}
-  body.staj2 .tab.on{background:#52525b;border-color:#52525b}
-  body.staj2 .eyeb{color:#52525b}
-  body.staj2 .box:not(.warn):not(.ok):not(.err){background:#e9e9ee;border-color:#d4d4db}
-  body.staj2 .doc,body.staj2 .qa,body.staj2 .radio,body.staj2 .tab:not(.on){background:#fafafc}
-  body.staj2 .big{background:#52525b}
-  body.staj2 .big:hover:not(:disabled){background:#3f3f46}
-  body.staj2 .big:disabled{background:#c6c6cd}
-  body.staj2 footer{background:#f1f1f4}
+           background:var(--vurgu);color:var(--ink);border:1px solid #d8dce2}
+  body.staj2 .stajbar{background:#2f5d8a;color:#fff;border-color:#2f5d8a}
+  body.staj2 .tab.on{background:#2f5d8a;border-color:#2f5d8a}
+  body.staj2 .colmain{border-top-color:#2f5d8a}
+  body.staj2 .sidecard{background:#f0f5fb;border-color:#c9d9ea}
 
   /* ── Tanıtım turu: ilk kez girenlere süreci slayt slayt anlatır ── */
   .tour{max-width:620px;margin:6px auto;text-align:center}

@@ -374,7 +374,7 @@ function home() {
           onclick="switchStaj(${x.id})">${x.id === a?.id ? "▸ " : ""}${x.staj_no}. Staj · ${KISA[x.stage] || x.status}</button>`).join("")}
         ${canSecond ? `<button class="tab add" onclick="go('accept')">+ 2. stajını da başlat</button>` : ""}
        </div>
-       ${ME.applications.length > 1 ? `<div class="stajbar">${a.staj_no}. stajındasın (${a.staj_no === 2 ? "gri" : "beyaz"} ekran)</div>` : ""}
+       ${ME.applications.length > 1 ? `<div class="stajbar">Şu an: ${a.staj_no}. staj${a.staj_no === 2 ? " (mavi)" : ""}</div>` : ""}
        ${canSecond ? '<p class="hint" style="margin:-8px 0 18px">3. ve 4. sınıflar iki stajı aynı dönemde yapabilir; tarihler çakışmadığı sürece ikisi ayrı ayrı ilerler.</p>' : ""}` : "";
 
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
