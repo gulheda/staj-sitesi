@@ -7,9 +7,9 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
 <style>
   :root{
-    --navy:#47121e; --accent:#8f2438; --accent-h:#731c2d;
+    --navy:#16181d; --accent:#39414f; --accent-h:#262c36;
     --ink:#262220; --mut:#6b6459; --line:#e3ded4; --bg:#f4f2ed; --card:#ffffff;
-    --ok:#187a3c; --warn:#a3540a; --vurgu:#f8eef0;
+    --ok:#187a3c; --warn:#a3540a; --vurgu:#eef0f3;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{background:var(--bg)}
@@ -18,16 +18,16 @@
   .frame{display:flex;flex-direction:column;flex:1}
 
   /* ── Üst bant: koyu bordo, kurumsal ── */
-  header{background:var(--navy);border-bottom:3px solid #d4a017}
+  header{background:var(--navy);border-bottom:3px solid #8a93a3}
   .hwrap{width:100%;padding:0 40px;display:flex;align-items:center;gap:30px;height:76px}
   .logo{color:#fff;font-weight:700;font-size:20px;line-height:1.2;white-space:nowrap;
         font-family:Georgia,"Times New Roman",serif}
-  .logo small{display:block;font-weight:400;font-size:12.5px;color:#d9b3ba;letter-spacing:.02em;font-family:"Segoe UI",system-ui,sans-serif}
+  .logo small{display:block;font-weight:400;font-size:12.5px;color:#a6adba;letter-spacing:.02em;font-family:"Segoe UI",system-ui,sans-serif}
   nav{display:flex;gap:6px;flex:1;justify-content:center}
   nav a{padding:11px 26px;color:rgba(255,255,255,.85);text-decoration:none;cursor:pointer;font-size:17px;border-radius:9px;font-weight:500}
   nav a:hover{background:rgba(255,255,255,.12);color:#fff}
   nav a.active{background:#fff;color:var(--navy);font-weight:700}
-  header .muted{color:#d9b3ba;font-size:14px}
+  header .muted{color:#a6adba;font-size:14px}
   header .link{color:#fff;font-size:13.5px}
 
   /* ── Profil menüsü ── */
@@ -35,10 +35,10 @@
   .uchip{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.1);border:0;color:#fff;
          padding:8px 15px 8px 9px;border-radius:99px;cursor:pointer;font-family:inherit;font-size:15px}
   .uchip:hover{background:rgba(255,255,255,.18)}
-  .uava{width:32px;height:32px;border-radius:50%;background:#d4a017;color:#3d1018;font-weight:700;
+  .uava{width:32px;height:32px;border-radius:50%;background:#e2e6ec;color:#16181d;font-weight:700;
         font-size:13.5px;display:flex;align-items:center;justify-content:center}
   .umenu{display:none;position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--line);
-         border-radius:12px;box-shadow:0 8px 24px rgba(71,18,30,.2);min-width:190px;z-index:50;overflow:hidden}
+         border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);min-width:190px;z-index:50;overflow:hidden}
   .umenu.open{display:block}
   .umenu button{display:block;width:100%;text-align:left;background:#fff;border:0;padding:13px 18px;
                 font-size:15.5px;font-family:inherit;cursor:pointer;color:var(--ink)}
@@ -46,17 +46,17 @@
 
   /* ── Sayfa gövdesi ── */
   main{width:100%;max-width:860px;margin:38px auto;padding:48px 58px;background:var(--card);
-       border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgba(71,18,30,.07)}
+       border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 3px rgba(20,22,26,.07)}
   main.wide{max-width:1380px;background:transparent;border:0;box-shadow:none;padding:32px 32px}
   main.full{max-width:1380px;background:transparent;border:0;box-shadow:none;padding:32px 32px}
   .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:36px 44px;
-         margin-bottom:22px;box-shadow:0 1px 3px rgba(71,18,30,.07)}
+         margin-bottom:22px;box-shadow:0 1px 3px rgba(20,22,26,.07)}
   .docgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(390px,1fr));gap:16px;margin-top:12px}
   .docgrid .doc{margin:0;display:flex;flex-direction:column}
   .docgrid .doc-sum{flex:1}
   .rehgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:12px}
   .rehcard{border:1px solid var(--line);border-radius:12px;padding:18px 22px;background:#fff}
-  .rehcard.now{border-color:var(--accent);box-shadow:0 0 0 2px rgba(143,36,56,.15)}
+  .rehcard.now{border-color:var(--accent);box-shadow:0 0 0 2px rgba(57,65,79,.18)}
   .rehno{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--vurgu);color:var(--accent);
          font-weight:700;align-items:center;justify-content:center;font-size:14.5px;margin-bottom:8px}
   .rehcard.done .rehno{background:#ecf7ef;color:var(--ok)}
@@ -81,11 +81,11 @@
   .tl-row.open .tl-det{display:block}
   .cols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
   .colmain{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:46px 56px;
-           box-shadow:0 1px 3px rgba(71,18,30,.07);border-top:5px solid var(--accent)}
+           box-shadow:0 1px 3px rgba(20,22,26,.07);border-top:5px solid var(--accent)}
   .colmain.tone-warn{border-top-color:#d97706}
   .colmain.tone-ok{border-top-color:#16a34a}
   .sidecard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 26px;
-            margin-bottom:16px;font-size:15px;box-shadow:0 1px 2px rgba(71,18,30,.05)}
+            margin-bottom:16px;font-size:15px;box-shadow:0 1px 2px rgba(20,22,26,.05)}
   .sidecard h4{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
   .eyeb{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px}
   .steps-v{list-style:none}
@@ -107,7 +107,7 @@
         Sayfanın tamamı staja göre renk değiştirir; hangi stajda
         olduğun okumadan, sadece renkten anlaşılır. ── */
   .stajbar{border-radius:10px;padding:10px 18px;margin-bottom:18px;font-weight:700;font-size:15.5px;
-           background:var(--vurgu);color:var(--accent);border:1px solid #ecd4d9}
+           background:var(--vurgu);color:var(--accent);border:1px solid #d8dce2}
   body.staj2{background:#e4e4e8}
   body.staj2 main{background:#f1f1f4;border-color:#cfcfd6}
   body.staj2 .colmain,body.staj2 .sidecard,body.staj2 .panel{background:#f1f1f4;border-color:#cfcfd6}
@@ -150,7 +150,7 @@
   /* ── Form öğeleri ── */
   input,select,textarea{width:100%;max-width:580px;display:block;padding:14px 16px;border:2px solid #cbc3b4;
     font-size:16.5px;font-family:inherit;margin:7px 0 2px;border-radius:10px;background:#fff}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(143,36,56,.14)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(57,65,79,.16)}
   .radio{display:flex;align-items:center;gap:13px;border:2px solid #cbc3b4;padding:16px 18px;max-width:580px;
          margin:11px 0;cursor:pointer;border-radius:11px;font-size:16.5px;background:#fff}
   .radio:hover{border-color:var(--accent)}
