@@ -91,6 +91,26 @@ Amaç görsel tasarımı değil, **akışı ve metinleri** test etmektir. Sağ �
 "Senaryo" menüsü ile öğrencinin farklı süreç aşamalarındaki deneyimi
 görülebilir.
 
+## Canlıya alma
+
+Gerçek kullanım için (bölüm sunucusunda):
+
+```bash
+DEMO_VERI=0 STAJ_DONEM_ZORUNLU=1 PORT=3000 npm start
+```
+
+- `DEMO_VERI=0` → demo öğrenciler oluşturulmaz; yalnızca `komisyon` hesabı
+  açılır. **İlk iş komisyon şifresini değiştirmek** (pilotta sabittir).
+- `STAJ_DONEM_ZORUNLU=1` → başvuru dönemleri (yaz: 1 Haziran–15 Temmuz,
+  dönem içi: ayın 10'una kadar) kesin engel olarak uygulanır.
+- Gerçek öğrenci listesi komisyon panelindeki **Öğrenci yönetimi**
+  bölümünden yüklenir (satır biçimi: `öğrenciNo;TC;Ad Soyad;eposta`).
+  Öğrenci ilk girişini öğrenci no + TC ile yapar, kendi şifresini oluşturur.
+- Oturumlar veritabanında tutulur; sunucu yeniden başlasa da düşmez.
+- HTTPS için üniversitenin ters vekili (nginx/IIS) arkasına konumlandırın;
+  `staj.db` ve `uploads/` klasörünün düzenli yedeğini alın.
+- Giriş denemeleri sınırlıdır (8 hatalı deneme → 5 dk bekleme).
+
 ## Sonraki aşamalar
 
 1. ~~Araştırma ve süreç analizi~~ ✅ (bu depo)

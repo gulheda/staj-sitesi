@@ -35,21 +35,38 @@ const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-app.use(express.json());
+app.use(express.json({ limit: "200kb" }));
+app.use((req, res, next) => {   // temel güvenlik başlıkları
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "same-origin");
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
-// ── Oturum: httpOnly çerez + bellek içi tablo ──
-const sessions = new Map();
+// ── Oturum: httpOnly çerez + veritabanında saklanır (yeniden başlatmada düşmez) ──
 function setSession(res, userId) {
   const sid = crypto.randomBytes(24).toString("hex");
-  sessions.set(sid, userId);
-  res.setHeader("Set-Cookie", `sid=${sid}; HttpOnly; Path=/; SameSite=Lax`);
+  db.prepare("INSERT INTO sessions (sid, user_id) VALUES (?,?)").run(sid, userId);
+  res.setHeader("Set-Cookie", `sid=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`);
 }
 function getUser(req) {
   const sid = (req.headers.cookie || "").split(";").map(s => s.trim())
     .find(s => s.startsWith("sid="))?.slice(4);
-  const id = sid && sessions.get(sid);
-  return id ? db.prepare("SELECT * FROM users WHERE id=?").get(id) : null;
+  if (!sid || !/^[a-f0-9]{48}$/.test(sid)) return null;
+  const row = db.prepare("SELECT user_id FROM sessions WHERE sid=?").get(sid);
+  return row ? db.prepare("SELECT * FROM users WHERE id=?").get(row.user_id) : null;
+}
+
+// ── Kaba kuvvet önleme: aynı numara için 8 hatalı denemeden sonra 5 dk bekletilir ──
+const attempts = new Map();
+function throttled(no) {
+  const a = attempts.get(no);
+  return a && a.count >= 8 && Date.now() - a.last < 5 * 60 * 1000;
+}
+function noteFail(no) {
+  const a = attempts.get(no) || { count: 0, last: 0 };
+  attempts.set(no, { count: a.count + 1, last: Date.now() });
 }
 function auth(role) {
   return (req, res, next) => {
@@ -88,12 +105,14 @@ function deriveStage(appRow) {
   if (s === "evaluating") return "evaluating";
   if (s === "fix_defter") return "fix_defter";
   if (s === "accepted") return "accepted";
-  // approved: SGK → OBS → staj → teslim
+  // approved: SGK → OBS → staj → teslim.
+  // Takvim her zaman önceliklidir: staj fiilen başladıysa/bittiyse öğrenci
+  // SGK/OBS işaretini unutmuş olsa bile doğru aşamada gösterilir.
+  if (today() > appRow.end_date) return "deliver";
+  if (today() >= appRow.start_date) return "during";
   if (!appRow.sgk_checked) return "sgk";
   if (!appRow.obs_done) return "obs";
-  if (today() < appRow.start_date) return "ready";
-  if (today() <= appRow.end_date) return "during";
-  return "deliver";
+  return "ready";
 }
 const currentApp = (userId) =>
   db.prepare("SELECT * FROM applications WHERE user_id=? ORDER BY id DESC LIMIT 1").get(userId);
@@ -101,17 +120,25 @@ const currentApp = (userId) =>
 // ─────────── Kimlik ───────────
 app.post("/api/login", (req, res) => {
   const { no, pass } = req.body || {};
-  const u = db.prepare("SELECT * FROM users WHERE ogrenci_no=?").get((no || "").trim());
-  if (!u) return res.status(401).json({ error: "Bu numarayla kayıtlı öğrenci bulunamadı. Numaranı kontrol et." });
+  const key = (no || "").trim();
+  if (throttled(key))
+    return res.status(429).json({ error: "Çok fazla hatalı deneme yapıldı. 5 dakika sonra tekrar dene." });
+  const u = db.prepare("SELECT * FROM users WHERE ogrenci_no=?").get(key);
+  if (!u) { noteFail(key); return res.status(401).json({ error: "Bu numarayla kayıtlı öğrenci bulunamadı. Numaranı kontrol et." }); }
   if (!u.password_hash) {
     // İlk giriş: TC kimlik no ile kimlik doğrulama, ardından şifre oluşturma.
-    if ((pass || "").trim() !== u.tc)
+    if ((pass || "").trim() !== u.tc) {
+      noteFail(key);
       return res.status(401).json({ error: "İlk girişte şifre alanına TC kimlik numaranı yazmalısın." });
+    }
     setSession(res, u.id);
     return res.json({ firstLogin: true, name: u.name });
   }
-  if (!verify(pass || "", u.password_hash))
+  if (!verify(pass || "", u.password_hash)) {
+    noteFail(key);
     return res.status(401).json({ error: "Şifre yanlış. Unuttuysan 'Şifremi unuttum' bağlantısını kullan." });
+  }
+  attempts.delete(key);
   setSession(res, u.id);
   res.json({ ok: true, role: u.role, name: u.name });
 });
@@ -125,7 +152,7 @@ app.post("/api/set-password", auth(), (req, res) => {
 
 app.post("/api/logout", (req, res) => {
   const sid = (req.headers.cookie || "").match(/sid=([a-f0-9]+)/)?.[1];
-  if (sid) sessions.delete(sid);
+  if (sid) db.prepare("DELETE FROM sessions WHERE sid=?").run(sid);
   res.setHeader("Set-Cookie", "sid=; HttpOnly; Path=/; Max-Age=0");
   res.json({ ok: true });
 });
@@ -161,9 +188,11 @@ app.get("/api/me", auth(), (req, res) => {
 // ─────────── Başvuru sihirbazı (otomatik kayıt) ───────────
 app.post("/api/application", auth(), (req, res) => {
   let appRow = currentApp(req.user.id);
-  if (appRow && !["draft", "fix"].includes(appRow.status) && appRow.status !== "rejected")
+  // Yeni başvuru: hiç yoksa, reddedildiyse veya önceki staj kabul edildiyse
+  // (2. staj) açılabilir. Taslak/düzeltme varsa mevcut olan döner.
+  if (appRow && !["draft", "fix", "rejected", "accepted"].includes(appRow.status))
     return res.status(400).json({ error: "Aktif bir başvurun zaten var." });
-  if (!appRow || appRow.status === "rejected") {
+  if (!appRow || ["rejected", "accepted"].includes(appRow.status)) {
     const stajNo = db.prepare(
       "SELECT COUNT(*) c FROM applications WHERE user_id=? AND status='accepted'").get(req.user.id).c + 1;
     const r = db.prepare("INSERT INTO applications (user_id, staj_no) VALUES (?,?)").run(req.user.id, stajNo);
@@ -300,7 +329,10 @@ app.post("/api/questions", auth(), (req, res) => {
 });
 
 app.get("/api/questions", auth(), (req, res) => {
-  res.json(db.prepare("SELECT * FROM questions WHERE user_id=? ORDER BY id DESC").all(req.user.id));
+  // "[SGK]" ile başlayanlar sistemin komisyona ilettiği otomatik bildirimlerdir;
+  // öğrencinin "Sorularım" listesinde gösterilmez.
+  res.json(db.prepare(
+    "SELECT * FROM questions WHERE user_id=? AND text NOT LIKE '[SGK]%' ORDER BY id DESC").all(req.user.id));
 });
 
 // ─────────── Komisyon paneli ───────────
@@ -376,6 +408,33 @@ app.post("/api/admin/question/:id/answer", auth("admin"), (req, res) => {
   if (addToFaq) db.prepare("INSERT INTO faq (category, q, a) VALUES (?,?,?)")
     .run(category || "Genel", q.text, answer);
   res.json({ ok: true });
+});
+
+// ── Öğrenci yönetimi: canlıya geçişte gerçek liste buradan yüklenir ──
+app.get("/api/admin/students", auth("admin"), (req, res) => {
+  res.json({
+    count: db.prepare("SELECT COUNT(*) c FROM users WHERE role='student'").get().c,
+    activated: db.prepare("SELECT COUNT(*) c FROM users WHERE role='student' AND password_hash IS NOT NULL").get().c,
+  });
+});
+
+app.post("/api/admin/students", auth("admin"), (req, res) => {
+  // Satır biçimi: ogrenci_no;tc;ad soyad;eposta  (eposta isteğe bağlı)
+  const lines = (req.body.lines || "").split("\n").map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return res.status(400).json({ error: "Eklenecek satır bulunamadı." });
+  let added = 0, skipped = 0;
+  const errors = [];
+  const ins = db.prepare("INSERT INTO users (ogrenci_no, tc, name, email, password_hash, role) VALUES (?,?,?,?,NULL,'student')");
+  lines.forEach((line, i) => {
+    const [no, tc, ad, ep] = line.split(";").map(s => (s || "").trim());
+    if (!/^\d{6,12}$/.test(no || "")) { errors.push(`${i + 1}. satır: öğrenci no hatalı`); return; }
+    if (!/^\d{11}$/.test(tc || "")) { errors.push(`${i + 1}. satır: TC 11 hane olmalı`); return; }
+    if (!ad || ad.length < 5) { errors.push(`${i + 1}. satır: ad soyad eksik`); return; }
+    if (db.prepare("SELECT id FROM users WHERE ogrenci_no=?").get(no)) { skipped++; return; }
+    ins.run(no, tc, ad, ep || null);
+    added++;
+  });
+  res.json({ added, skipped, errors });
 });
 
 app.get("/api/admin/file/:id", auth("admin"), (req, res) => {

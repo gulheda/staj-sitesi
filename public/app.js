@@ -176,6 +176,9 @@ function home() {
     <p class="sub"><b>${pr.done ?? "?"}. iş günü / ${pr.total ?? "?"}</b>${kalan != null ? ` · kalan ${kalan} iş günü` : ""} · Bitiş: ${fmtDate(a.end_date)}</p>
     <div class="prog"><div class="bar"><i style="width:${pr.total ? Math.round(pr.done / pr.total * 100) : 0}%"></i></div>
       <div class="txt"><span>Defterinde şu ana kadar <b>${pr.done ?? "?"} sayfa</b> olmalı (her iş günü için 1 sayfa)</span></div></div>
+    ${!a.sgk_checked ? `<div class="box warn">⚠ Staj başlamadan önce SGK kontrolünü işaretlememiştin. Sigortanın
+      yapıldığından emin ol: e-Devlet → “SGK Tescil ve Hizmet Dökümü”.
+      <button class="link" onclick="markSgk(true)">Kontrol ettim, kaydım var ✓</button></div>` : ""}
     <div class="box warn"><b>Her gün defter sayfanı doldur ve imzalat.</b> Son güne bırakma — en çok yapılan hata bu.</div>
     ${pr.done <= 2 ? '<div class="box info">🎬 <b>Vlog çekimine bugün başla:</b> videon stajın <b>ilk</b>, orta ve son günlerinden bölümler içermeli. Son gün birkaç fotoğrafla olmaz.</div>' : ""}
     <button class="big" onclick="go('docs')">Defter sayfasını indir</button>`;
@@ -200,9 +203,11 @@ function home() {
 
   if (s === "accepted") h = `
     <div class="center"><div class="icon">🎓</div></div>
-    <h1 class="center">Stajın kabul edildi!</h1>
-    <p class="sub center">Her şey tamamlandı. Yapman gereken başka bir şey yok.</p>
-    <div class="box info center">Staj notun OBS'ye işlenince orada görünecek.${a.staj_no < 2 ? " İkinci stajın için hazır olduğunda buradan yeni başvuru açabileceksin." : ""}</div>`;
+    <h1 class="center">${a.staj_no}. stajın kabul edildi!</h1>
+    <p class="sub center">${a.staj_no < 2 ? "Notun OBS'ye işlenecek. Hazır olduğunda ikinci stajına başlayabilirsin." : "Her iki stajın da tamamlandı. Yapman gereken başka bir şey yok. 🎉"}</p>
+    ${a.staj_no < 2 ? `<div class="center"><button class="big" onclick="go('accept')">2. staj başvurusunu başlat</button></div>
+      <p class="after">İkinci staj da aynı adımlardan geçer: kurum bul → kabul belgesi → başvuru.</p>`
+      : '<div class="box info center">Staj notların OBS\'ye işlenince orada görünecek.</div>'}`;
 
   // Bağlamsal yardım: her ekranın altında, bulunduğun aşamayla ilgili SSS'ye götürür.
   const TOPIC = { noplace: "staj yeri", draft: "başvuru", review: "başvuru", fix: "belge",

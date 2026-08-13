@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Komisyon Paneli — BAÜN Staj</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -155,10 +156,36 @@ async function load() {
       <span class="who">${w.name}</span> <span class="meta">· ${w.ogrenci_no} ·
       ${w.status === "fix_defter" ? "defter düzeltmesi" : "belge düzeltmesi"} · istendi: ${(w.updated_at || "").slice(0, 10)}</span>
       <div class="meta">“${w.fix_note || ""}”</div></div>`).join("")
-      : `<div class="empty">Düzeltme bekleyen öğrenci yok.</div>`}`;
+      : `<div class="empty">Düzeltme bekleyen öğrenci yok.</div>`}
+    <h2>Öğrenci yönetimi</h2>
+    <div class="card" id="stuCard">
+      <div class="meta" id="stuStats">yükleniyor…</div>
+      <p style="margin:8px 0 4px;font-size:14px">Yeni öğrencileri toplu ekle — her satıra bir öğrenci:</p>
+      <div class="meta">biçim: <code>öğrenciNo;TCkimlikNo;Ad Soyad;eposta</code> (e-posta isteğe bağlı)</div>
+      <textarea id="stuLines" rows="4" placeholder="202512345678;12345678901;Ali Veli;ali@ogr.balikesir.edu.tr"></textarea>
+      <button class="ok" onclick="addStudents()">Öğrencileri ekle</button>
+      <div class="meta" id="stuRes"></div>
+      <div class="meta" style="margin-top:6px">Eklenen öğrenci ilk girişini <b>öğrenci no + TC</b> ile yapar ve kendi şifresini oluşturur.</div>
+    </div>`;
+  loadStudents();
   document.querySelectorAll("select[id^=t]").forEach(sel => {
     sel.onchange = () => { const id = sel.id.slice(1); if (sel.value !== "") $("n" + id).value = TEMPLATES[+sel.value]; };
   });
+}
+
+async function loadStudents() {
+  try {
+    const s = await api("/admin/students");
+    $("stuStats").textContent = `Kayıtlı öğrenci: ${s.count} · şifresini oluşturmuş (aktif): ${s.activated}`;
+  } catch {}
+}
+async function addStudents() {
+  try {
+    const r = await api("/admin/students", { method: "POST", json: { lines: $("stuLines").value } });
+    $("stuRes").innerHTML = `✅ ${r.added} eklendi${r.skipped ? ` · ${r.skipped} zaten kayıtlı` : ""}` +
+      (r.errors.length ? `<br>⚠ ${r.errors.join(" · ")}` : "");
+    if (r.added) { $("stuLines").value = ""; loadStudents(); }
+  } catch (e) { $("stuRes").textContent = "⚠ " + e.message; }
 }
 
 async function decide(id, action) {
