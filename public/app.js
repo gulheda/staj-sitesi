@@ -58,32 +58,64 @@ async function refresh() {
 }
 function switchStaj(id) { selApp = id; go("home"); }
 
-/* ───────── Giriş ───────── */
-function loginScreen(msg) {
+/* ───────── Giriş ─────────
+   Sayısal alanlar yalnız rakam kabul eder ve hane sınırını aşamaz —
+   harf yazmak veya fazla hane girmek fiziksel olarak imkânsızdır. */
+function digitsOnly(elm, max) {
+  elm.value = elm.value.replace(/\D/g, "").slice(0, max);
+}
+function lettersOnly(elm) {
+  elm.value = elm.value.replace(/[0-9]/g, "");
+}
+
+function loginScreen(msg, first) {
   $("topbar").style.display = "none";
   el(`
     <div style="margin-top:40px">
       <h1>BAÜN Staj</h1>
-      <p class="sub">Stajınla ilgili her şey burada.</p>
+      <p class="sub">${first ? "İlk girişini yapalım — kimliğini doğrulayıp kendi şifreni oluşturacaksın." : "Stajınla ilgili her şey burada."}</p>
       ${msg ? errBox(msg) : ""}
       <label>Öğrenci numaran</label>
-      <input id="no" type="text" inputmode="numeric" placeholder="11 haneli öğrenci numaran" autocomplete="username">
+      <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Öğrenci numaran (sadece rakam)"
+        autocomplete="username" oninput="digitsOnly(this,12);loginCheck(${!!first})">
+      ${first ? `
+      <label>TC kimlik numaran</label>
+      <input id="tc" type="text" inputmode="numeric" maxlength="11" placeholder="11 haneli TC kimlik numaran"
+        oninput="digitsOnly(this,11);loginCheck(true)">
+      <p class="hint" id="tcHint">TC kimlik numaran tam 11 hane olmalı.</p>
+      <button class="big" id="loginBtn" disabled onclick="doLogin(true)">Kimliğimi doğrula ve başla</button>
+      <p class="why" id="lwhy"></p>
+      <p class="center"><button class="link" style="font-size:14px" onclick="loginScreen('',false)">Şifrem zaten var — normal giriş</button></p>
+      ` : `
       <label>Şifren</label>
-      <input id="pw" type="password" placeholder="Şifreni yaz" autocomplete="current-password">
-      <p class="hint">İlk kez mi giriyorsun? Şifre yerine TC kimlik numaranı yaz — sonra kendi şifreni oluşturacaksın.</p>
-      <br><button class="big" onclick="doLogin()">Giriş yap</button>
-      <p class="center"><button class="link" style="font-size:14px"
-        onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button></p>
+      <input id="pw" type="password" maxlength="64" placeholder="Şifreni yaz" autocomplete="current-password">
+      <button class="big" id="loginBtn" onclick="doLogin(false)">Giriş yap</button>
+      <p class="center" style="margin-top:10px">
+        <button class="link" style="font-size:14.5px" onclick="loginScreen('',true)">İlk kez mi giriyorsun? Buradan başla</button><br><br>
+        <button class="link" style="font-size:13px"
+          onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button>
+      </p>`}
     </div>`);
 }
 
-async function doLogin() {
+// İlk giriş modunda buton, numara ve 11 haneli TC tamamlanmadan açılmaz.
+function loginCheck(first) {
+  if (!first) return;
+  const noOk = ($("no").value || "").length >= 8;
+  const tcOk = ($("tc").value || "").length === 11;
+  $("loginBtn").disabled = !(noOk && tcOk);
+  $("lwhy").textContent = !noOk ? "Devam etmek için: öğrenci numaranı yaz"
+    : !tcOk ? `Devam etmek için: TC'nin 11 hanesini de yaz (${($("tc").value || "").length}/11)` : "";
+}
+
+async function doLogin(first) {
   try {
-    const r = await api("/login", { method: "POST", json: { no: $("no").value, pass: $("pw").value } });
+    const pass = first ? $("tc").value : $("pw").value;
+    const r = await api("/login", { method: "POST", json: { no: $("no").value, pass } });
     if (r.firstLogin) return setPassScreen(r.name);
     if (r.role === "admin") { location.href = "/admin.html"; return; }
     await refresh(); go("home");
-  } catch (e) { loginScreen(e.message); }
+  } catch (e) { loginScreen(e.message, !!first); }
 }
 
 function setPassScreen(name, msg) {
@@ -93,7 +125,7 @@ function setPassScreen(name, msg) {
       <p class="sub">Kimliğini doğruladık. Artık kendine bir şifre belirle — bundan sonra TC numaranla değil, bu şifreyle gireceksin.</p>
       ${msg ? errBox(msg) : ""}
       <label>Yeni şifren</label>
-      <input id="pw1" type="password" placeholder="En az 8 karakter" autocomplete="new-password">
+      <input id="pw1" type="password" maxlength="64" placeholder="En az 8 karakter" autocomplete="new-password">
       <p class="hint">En az 8 karakter. Unutmayacağın ama tahmin edilemeyecek bir şey seç.</p>
       <br><button class="big" onclick="doSetPass()">Şifremi kaydet ve başla</button>
     </div>`);
@@ -335,7 +367,8 @@ async function wizard(msg) {
     <p class="sub">Bunlar öğrenci kayıtlarından geldi — yazmana gerek yok.</p>
     <div class="box info">${ME.user.name} · ${ME.user.no}<br>Bilgisayar Mühendisliği · ${a.staj_no}. staj</div>
     <label>Telefon numaran</label>
-    <input id="telefon" type="tel" inputmode="numeric" placeholder="0555 123 45 67" value="${a.telefon || ""}" oninput="stepCheck(1)">
+    <input id="telefon" type="tel" inputmode="numeric" maxlength="11" placeholder="05551234567 (sadece rakam)"
+      value="${(a.telefon || "").replace(/\D/g, "")}" oninput="digitsOnly(this,11);stepCheck(1)">
     <p class="hint">Komisyonun sana ulaşması gerekirse kullanılır.</p>
     <button class="big" id="nextBtn" disabled onclick="wPhone()">Devam et</button>
     <p class="why" id="why"></p>${backB}`;
@@ -359,7 +392,7 @@ async function wizard(msg) {
     body = `
     <h1>Staj yapacağın kurum</h1>
     <label>Kurumun adı</label>
-    <input id="kadi" value="${a.kurum_adi || ""}" placeholder="Şirketin tam adını yaz" oninput="stepCheck(3)">
+    <input id="kadi" maxlength="80" value="${a.kurum_adi || ""}" placeholder="Şirketin tam adını yaz" oninput="stepCheck(3)">
     <label>Kurum nerede?</label>
     <label class="radio"><input type="radio" name="yer" value="tr" ${abroad ? "" : "checked"} onchange="yerToggle()"> Türkiye'de</label>
     <label class="radio"><input type="radio" name="yer" value="yd" ${abroad ? "checked" : ""} onchange="yerToggle()"> Yurt dışında</label>
@@ -373,7 +406,7 @@ async function wizard(msg) {
       <select id="ulke" onchange="stepCheck(3)"><option value="">— ülke seç —</option>
         ${ULKELER.map(u => `<option ${savedUlke === u ? "selected" : ""}>${u}</option>`).join("")}</select>
       <label>Şehir</label>
-      <input id="ksehir" value="${savedSehir}" placeholder="ör. Berlin" oninput="stepCheck(3)">
+      <input id="ksehir" maxlength="40" value="${savedSehir}" placeholder="ör. Berlin" oninput="lettersOnly(this);stepCheck(3)">
       <div class="box warn">Yurt dışı stajında sigortanı üniversite yapamaz —
         <b>SGK'yı kendi imkânlarınla yaptırman gerekir.</b> Komisyon başvurunu buna göre değerlendirecek.</div>
     </div>
@@ -394,7 +427,8 @@ async function wizard(msg) {
   if (n === 4) body = `
     <h1>Senden sorumlu mühendis kim?</h1>
     <label>Adı soyadı</label>
-    <input id="mad" value="${a.muh_ad || ""}" placeholder="Mühendisin adı ve soyadı" oninput="stepCheck(4)">
+    <input id="mad" maxlength="60" value="${a.muh_ad || ""}" placeholder="Mühendisin adı ve soyadı"
+      oninput="lettersOnly(this);stepCheck(4)">
     <label>Unvanı</label>
     <select id="munvan" onchange="$('dk').style.display=this.value==='Bilmiyorum'?'block':'none'">
       ${["Bilgisayar Mühendisi", "Yazılım Mühendisi", "İlgili alanda mühendis", "Bilmiyorum"]
