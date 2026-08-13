@@ -63,6 +63,10 @@ let selApp = null; // seçili staj başvurusunun id'si (3.-4. sınıfta iki baş
 async function refresh() {
   ME = await api("/me" + (selApp ? "?app=" + selApp : ""));
   selApp = ME.application?.id || null;
+  // İki başvurusu olan öğrencide zemin staja göre değişir:
+  // 1. staj beyaz, 2. staj gri — hangi stajda olduğun renkten belli olur.
+  document.body.classList.toggle("staj2",
+    (ME.applications?.length || 0) > 1 && ME.application?.staj_no === 2);
 }
 function switchStaj(id) { selApp = id; go("home"); }
 
@@ -89,6 +93,7 @@ function lettersOnly(elm) {
 
 function loginScreen(msg) {
   $("topbar").style.display = "none";
+  document.body.classList.remove("staj2");
   // Tek form, tek yol: ilk kez giren şifre alanına TC'sini yazar,
   // sistem onu tanıyıp şifre oluşturmaya götürür. Ayrı "ilk giriş" ekranı yoktur.
   el(`
@@ -167,7 +172,7 @@ function home() {
     <h1>Başvurun inceleniyor.</h1>
     <p class="sub">Senden bir işlem beklenmiyor. Sonuçlanınca bildirimle haber vereceğiz.</p>
     <div class="box info">Başvurular genellikle <b>5 iş günü</b> içinde incelenir.</div>
-    <div class="box info" style="background:#eff6ff"><b>Bu arada yapabileceklerin:</b><br>
+    <div class="box info"><b>Bu arada yapabileceklerin:</b><br>
       • <button class="link" onclick="go('docs')">Defter sayfası şablonunu şimdiden indir</button><br>
       • <button class="link" onclick="go('guide')">Sürecin devamında seni neler bekliyor, göz at</button><br>
       • 🎬 Vlog için fikir toplamaya başla — stajın ilk gününden çekim yapman gerekecek</div>`;
@@ -296,16 +301,17 @@ function home() {
   // Staj sekmeleri en üstte: mevcut başvurular + (3.-4. sınıfsa) "2. stajını da aç".
   const canSecond = (ME.user.sinif ?? 3) >= 3 &&
     ME.applications.filter(x => x.status !== "rejected").length === 1 && a && s !== "noplace";
-  // Seçili staj sekmesi koyu görünür — hangi stajın ekranında olduğun hiç karışmaz.
-  // İki başvuru komisyonda da öğrencide de ayrı ayrı ilerler; sekme sadece aralarında geçiş yapar.
+  // İki staj = iki ayrı ekran: seçili sekme koyu, 2. staja geçince bütün
+  // sayfa griye döner (1. staj beyaz kalır). Bakan herkes hangi stajda
+  // olduğunu renkten anlar; iki başvuru birbirinden bağımsız ilerler.
   const tabs = (ME.applications.length > 1 || canSecond)
-    ? `<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+    ? `<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         ${ME.applications.map(x => `<button class="tab ${x.id === a?.id ? "on" : ""}"
           onclick="switchStaj(${x.id})">${x.id === a?.id ? "▸ " : ""}${x.staj_no}. Staj · ${KISA[x.stage] || x.status}</button>`).join("")}
         ${canSecond ? `<button class="tab add" onclick="go('accept')">+ 2. stajını da başlat</button>` : ""}
        </div>
-       ${ME.applications.length > 1 ? `<p class="hint" style="margin:-12px 0 18px">Şu an <b>${a.staj_no}. stajının</b> ekranındasın. İki başvurun birbirinden bağımsız ilerler; diğerine geçmek için üstteki açık renkli sekmeye tıkla.</p>` : ""}
-       ${canSecond ? '<p class="hint" style="margin:-12px 0 18px">3. ve 4. sınıflar iki stajı aynı dönemde yapabilir; tarihler çakışmadığı sürece ikisi ayrı ayrı ilerler.</p>' : ""}` : "";
+       ${ME.applications.length > 1 ? `<div class="stajbar">${a.staj_no === 2 ? "▦" : "▨"} Şu an ${a.staj_no}. stajının ekranındasın — ${a.staj_no === 2 ? "gri zemin 2. staj demektir" : "beyaz zemin 1. staj demektir"}. Diğerine geçmek için üstteki sekmeye tıkla.</div>` : ""}
+       ${canSecond ? '<p class="hint" style="margin:-8px 0 18px">3. ve 4. sınıflar iki stajı aynı dönemde yapabilir; tarihler çakışmadığı sürece ikisi ayrı ayrı ilerler.</p>' : ""}` : "";
 
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
   const TONE = { fix: "tone-warn", fix_defter: "tone-warn", deliver: "tone-warn",
@@ -313,7 +319,7 @@ function home() {
   el(`<div class="cols">
     <section class="colmain ${TONE[s] || ""}">
       ${tabs}
-      <div class="m-only">${prog(stageNo)}</div>
+      ${prog(stageNo)}
       <p class="eyeb">Güncel durumun${ME.applications.length > 1 ? ` — ${a.staj_no}. staj` : ""}</p>
       ${notifs}${h}${takildin}${notifHist}
     </section>
@@ -1089,7 +1095,13 @@ async function go(name) {
 (async () => {
   try {
     await refresh();
-    // ?sayfa=docs gibi bir adresle doğrudan bir bölüm açılabilir (yer imi desteği)
-    go(new URLSearchParams(location.search).get("sayfa") || "home");
+    // ?sayfa=docs bir bölümü, ?staj=2 belirli stajı doğrudan açar (yer imi desteği)
+    const p = new URLSearchParams(location.search);
+    const stajNo = +p.get("staj");
+    if (stajNo) {
+      const t = ME.applications.find(x => x.staj_no === stajNo);
+      if (t) { selApp = t.id; await refresh(); }
+    }
+    go(p.get("sayfa") || "home");
   } catch { loginScreen(); }
 })();
