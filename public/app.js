@@ -797,14 +797,14 @@ function chk() {
 const belgeKart = (b) => `
   <div class="doc">
     <div class="doc-top">
-      <span class="doc-ad">${b.icon} ${b.ad}${b.resmi ? ` <span class="muted">(${b.resmi})</span>` : ""}</span>
+      <span class="doc-ad">${b.icon} ${b.ad}</span>
       ${b.indir ? `<a class="doc-indir" href="${b.indir}" download>İndir</a>` : ""}
     </div>
-    <p class="doc-sum">${b.nedir}</p>
-    <details class="doc-det"><summary>Kim doldurur, nereye gider?</summary>
-      <table>${[["Neden gerekiyor?", b.neden], ["Kim dolduracak?", b.doldurur],
-        ["Kim imzalayacak?", b.imzalar], ["Kaşe gerekiyor mu?", b.kase],
-        ["Ne zaman?", b.nezaman], ["Nereye?", b.nereye]]
+    <p class="doc-sum">${(b.kisa || b.nedir).split(/(?<=\.)\s/)[0]}</p>
+    <details class="doc-det"><summary>Ayrıntılar</summary>
+      <table>${[["Resmî adı", b.resmi], ["Nedir?", b.nedir], ["Neden gerekiyor?", b.neden],
+        ["Kim dolduracak?", b.doldurur], ["Kim imzalayacak?", b.imzalar],
+        ["Kaşe gerekiyor mu?", b.kase], ["Ne zaman?", b.nezaman], ["Nereye?", b.nereye]]
         .filter(([, v]) => v)
         .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}
       </table>
@@ -890,8 +890,8 @@ const BELGELER = {
 
 function docsScreen() {
   nav("docs");
-  // Yatay ızgara düzeni: her grup bir panel, belgeler yan yana kartlar.
-  // Öğrencinin bulunduğu aşamanın grubu en üstte ve işaretli.
+  // Sadelik: yalnız ŞU AN gereken belgeler görünür. Diğer aşamaların
+  // belgeleri, istenirse tek tıkla açılan iki sakin kutuda durur.
   const stageGroup = ["noplace", "draft", "review", "fix", "rejected"].includes(ME.stage)
     ? "Başvurudan önce gerekenler"
     : ["sgk", "obs", "ready", "during"].includes(ME.stage)
@@ -899,20 +899,24 @@ function docsScreen() {
   const mine = ME.documents.length
     ? `<div class="box ok" style="margin-top:0">✅ Yüklediklerin: ${ME.documents.map(d =>
         `${d.kind === "kabul" ? "kabul belgesi" : "staj defteri"} (${d.uploaded_at.slice(0, 10)})`).join(" · ")}</div>` : "";
-  const grupPanel = (grup, items, aktif) => `
-    <section class="panel">
-      <h1 style="font-size:19px;margin-bottom:2px;${aktif ? "color:#1d4ed8" : ""}">${grup}
-        ${aktif ? '<span style="font-size:13px;font-weight:600;background:#eef3ff;border-radius:99px;padding:3px 12px;margin-left:8px;vertical-align:2px">şu an bu aşamadasın</span>' : ""}</h1>
-      <div class="docgrid">${items.map(belgeKart).join("")}</div>
-    </section>`;
-  const sirali = [[stageGroup, BELGELER[stageGroup], true],
-    ...Object.entries(BELGELER).filter(([g]) => g !== stageGroup).map(([g, i]) => [g, i, false])];
+  const digerleri = Object.entries(BELGELER).filter(([g]) => g !== stageGroup);
   el(`<div data-full>
     <h1>Belgelerim</h1>
-    <p class="sub">Her belgenin ne olduğu yanında yazar, İndir butonuyla alırsın.
-    "Kim doldurur, nereye gider?" satırına tıklarsan ayrıntısını görürsün.</p>
+    <p class="sub">Bulunduğun aşamada ihtiyacın olan belgeler bunlar. Her birini İndir ile alırsın;
+    merak edersen "Ayrıntılar"a tıklarsın.</p>
     ${mine}
-    ${sirali.map(([g, i, a]) => grupPanel(g, i, a)).join("")}
+    <section class="panel">
+      <div class="docgrid">${BELGELER[stageGroup].map(belgeKart).join("")}</div>
+    </section>
+    <p class="muted" style="margin:4px 0 10px">Diğer aşamaların belgeleri (şu an ihtiyacın yok):</p>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      ${digerleri.map(([g, items], i) => `
+        <button class="quiet" style="min-width:0" onclick="const p=$('dg${i}');const acik=p.style.display!=='none';p.style.display=acik?'none':'block';this.textContent=(acik?'📁 ':'📂 ')+'${g}'+' (${items.length})'">📁 ${g} (${items.length})</button>`).join("")}
+    </div>
+    ${digerleri.map(([g, items], i) => `
+      <section class="panel" id="dg${i}" style="display:none;margin-top:14px">
+        <div class="docgrid">${items.map(belgeKart).join("")}</div>
+      </section>`).join("")}
   </div>`);
 }
 
@@ -935,22 +939,24 @@ const REHBER = [
 ];
 function guideScreen() {
   nav("guide");
+  // Sakin görünüm: 12 adım tek kolonda, her adım tek satır.
+  // Yalnız bulunduğun adım açık gelir; merak edilen adıma tıklanınca açılır.
   const now = STAGE_NO[ME.stage] ?? -1;
-  el(`<div data-full>
-    <h1>Staj süreci, baştan sona</h1>
-    <p class="sub">12 adımın tamamı aşağıda. Ezberlemene gerek yok — sisteme her girdiğinde hangi
-    adımdaysan onu zaten gösteririz. Yeşil adımları tamamladın, mavi çerçeveli adım şu an bulunduğun yer.</p>
-    <div class="rehgrid">
+  el(`<h1>Staj süreci</h1>
+    <p class="sub">12 adım, sırasıyla. Ezberlemene gerek yok — sisteme her girdiğinde hangi adımdaysan
+    onu zaten gösteririz. Bir adımın ayrıntısını görmek için üzerine tıkla.</p>
+    <div class="tl">
       ${REHBER.map(([ad, ne, gorev], i) => `
-        <div class="rehcard ${i < now ? "done" : i === now ? "now" : ""}">
-          <span class="rehno">${i < now ? "✓" : i + 1}</span>
-          <h3>${ad}${i === now ? ' <span style="color:#1d4ed8;font-size:13px">· buradasın</span>' : ""}</h3>
-          <p>${ne}</p>
-          <p style="margin-top:6px"><b>Senin görevin:</b> ${gorev}</p>
+        <div class="tl-row ${i < now ? "done" : i === now ? "now" : ""} ${i === now ? "open" : ""}"
+             onclick="this.classList.toggle('open')">
+          <span class="tl-dot">${i < now ? "✓" : i + 1}</span>
+          <div class="tl-body">
+            <div class="tl-ad">${ad}${i === now ? ' <span class="tl-here">buradasın</span>' : ""}</div>
+            <div class="tl-det">${ne}<br><b>Senin görevin:</b> ${gorev}</div>
+          </div>
         </div>`).join("")}
     </div>
-    <div class="box info" style="margin-top:20px">Bölümde toplam <b>iki staj</b> yapılır (2 × 20 iş günü = 40 iş günü). İkisi de aynı adımlardan geçer.</div>
-  </div>`);
+    <div class="box info" style="margin-top:18px">Bölümde toplam <b>iki staj</b> yapılır (2 × 20 iş günü). İkisi de aynı adımlardan geçer.</div>`);
 }
 
 /* ───────── Profil ───────── */

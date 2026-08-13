@@ -63,6 +63,21 @@
   .rehcard h3{font-size:16.5px;margin-bottom:5px}
   .rehcard p{font-size:14.5px;color:#4a5262}
   .helpgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:start}
+  /* Rehber zaman çizelgesi */
+  .tl{position:relative;margin-top:8px}
+  .tl::before{content:"";position:absolute;left:15px;top:8px;bottom:8px;width:2px;background:var(--line)}
+  .tl-row{position:relative;display:flex;gap:16px;padding:7px 0;cursor:pointer}
+  .tl-dot{position:relative;z-index:1;flex-shrink:0;width:32px;height:32px;border-radius:50%;
+          background:#fff;border:2px solid #c6cedb;color:var(--mut);font-weight:700;font-size:14px;
+          display:flex;align-items:center;justify-content:center}
+  .tl-row.done .tl-dot{background:#ecf7ef;border-color:#16a34a;color:var(--ok)}
+  .tl-row.now .tl-dot{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tl-ad{font-weight:600;font-size:16px;padding-top:3px}
+  .tl-row.done .tl-ad{color:var(--ok)}
+  .tl-row.now .tl-ad{color:var(--accent)}
+  .tl-here{font-size:12.5px;background:#eef3ff;border-radius:99px;padding:2px 10px;margin-left:6px;font-weight:700}
+  .tl-det{display:none;font-size:14.5px;color:#4a5262;margin:4px 0 6px;max-width:620px}
+  .tl-row.open .tl-det{display:block}
   .cols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
   .colmain{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:44px 54px;
            box-shadow:0 1px 2px rgba(22,48,95,.06);border-top:4px solid var(--accent)}
