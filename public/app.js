@@ -70,10 +70,29 @@ function lettersOnly(elm) {
 
 function loginScreen(msg, first) {
   $("topbar").style.display = "none";
+  // İlk açılışta net bir seçim formu; "daha önce giriş yaptım" diyen için
+  // bu soru bir daha gösterilmez (tarayıcı hatırlar).
+  if (first === undefined && !msg) {
+    if (localStorage.getItem("girisModu") === "normal") first = false;
+    else {
+      el(`
+      <div style="margin-top:40px">
+        <h1>BAÜN Staj Portalı</h1>
+        <p class="sub">Bilgisayar Mühendisliği staj işlemlerinin tamamı burada.<br>Sana uygun olanı seç:</p>
+        <label class="radio" onclick="loginScreen('',true)" style="padding:18px">
+          <span><span style="font-weight:700;font-size:17px">İlk kez gireceğim</span><br>
+          <span class="muted">Şifrem yok — öğrenci numaram ve TC kimlik numaramla kimliğimi doğrulayacağım</span></span></label>
+        <label class="radio" onclick="localStorage.setItem('girisModu','normal');loginScreen('',false)" style="padding:18px">
+          <span><span style="font-weight:700;font-size:17px">Daha önce giriş yaptım</span><br>
+          <span class="muted">Öğrenci numaram ve şifrem var</span></span></label>
+      </div>`);
+      return;
+    }
+  }
   el(`
     <div style="margin-top:40px">
-      <h1>BAÜN Staj</h1>
-      <p class="sub">${first ? "İlk girişini yapalım — kimliğini doğrulayıp kendi şifreni oluşturacaksın." : "Stajınla ilgili her şey burada."}</p>
+      <h1>${first ? "İlk giriş" : "Giriş yap"}</h1>
+      <p class="sub">${first ? "Kimliğini doğrulayalım — sonra kendi şifreni oluşturacaksın." : "Öğrenci numaran ve şifrenle gir."}</p>
       ${msg ? errBox(msg) : ""}
       <label>Öğrenci numaran</label>
       <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Öğrenci numaran (sadece rakam)"
@@ -82,18 +101,18 @@ function loginScreen(msg, first) {
       <label>TC kimlik numaran</label>
       <input id="tc" type="text" inputmode="numeric" maxlength="11" placeholder="11 haneli TC kimlik numaran"
         oninput="digitsOnly(this,11);loginCheck(true)">
-      <p class="hint" id="tcHint">TC kimlik numaran tam 11 hane olmalı.</p>
       <button class="big" id="loginBtn" disabled onclick="doLogin(true)">Kimliğimi doğrula ve başla</button>
       <p class="why" id="lwhy"></p>
-      <p class="center"><button class="link" style="font-size:14px" onclick="loginScreen('',false)">Şifrem zaten var — normal giriş</button></p>
+      <p class="center"><button class="link" style="font-size:15px" onclick="localStorage.setItem('girisModu','normal');loginScreen('',false)">Şifrem zaten var — normal giriş</button></p>
       ` : `
       <label>Şifren</label>
       <input id="pw" type="password" maxlength="64" placeholder="Şifreni yaz" autocomplete="current-password">
       <button class="big" id="loginBtn" onclick="doLogin(false)">Giriş yap</button>
-      <p class="center" style="margin-top:10px">
-        <button class="link" style="font-size:14.5px" onclick="loginScreen('',true)">İlk kez mi giriyorsun? Buradan başla</button><br><br>
-        <button class="link" style="font-size:13px"
+      <p class="center" style="margin-top:12px">
+        <button class="link" style="font-size:13.5px"
           onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button>
+        <span class="muted"> · </span>
+        <button class="link" style="font-size:13.5px" onclick="loginScreen('',true)">İlk girişini yapacaksan tıkla</button>
       </p>`}
     </div>`);
 }
@@ -134,6 +153,7 @@ function setPassScreen(name, msg) {
 async function doSetPass() {
   try {
     await api("/set-password", { method: "POST", json: { password: $("pw1").value } });
+    localStorage.setItem("girisModu", "normal"); // artık normal kullanıcı — ilk giriş sorusu tekrar çıkmaz
     await refresh(); go("home");
   } catch (e) { setPassScreen(ME?.user?.name || "", e.message); }
 }
@@ -256,6 +276,7 @@ function home() {
 
   // ── Sağ panel: süreç, başvuru özeti, bildirimler ──
   let side = `<div class="sidecard"><h4>Staj sürecin</h4>
+    <p class="hint" style="margin:0 0 8px">Yeşil ✓ tamamlandı, mavi → şu anki adımın.</p>
     <ul class="steps-v">${STAGES.map((st, i) =>
       `<li class="${i < stageNo ? "done" : (i === stageNo ? "now" : "")}">${st}</li>`).join("")}</ul>
   </div>`;
@@ -264,7 +285,8 @@ function home() {
     const gunAd = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum" };
     const gunler = (a.calisma_gunleri || "").split(",").filter(Boolean).map(g => gunAd[g]).join("-");
     side += `<div class="sidecard"><h4>${ME.applications.length > 1 ? a.staj_no + ". staj başvurun" : "Başvurun"}</h4>
-      <div style="font-size:14px;line-height:1.7">
+      <p class="hint" style="margin:0 0 8px">Gönderdiğin bilgilerin özeti — her an buradan bakabilirsin.</p>
+      <div style="line-height:1.75">
         ${a.tur === "donem" ? `Dönem içi staj${gunler ? ` (${gunler})` : ""}` : "Yaz stajı"} · ${a.staj_no}. staj<br>
         <b>${a.kurum_adi || "—"}</b>${a.kurum_sehir ? ", " + a.kurum_sehir : ""}<br>
         ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}${ME.progress ? `<br>${ME.progress.total} iş günü` : ""}<br>
@@ -284,21 +306,18 @@ function home() {
   const KISA = { draft: "taslak", review: "incelemede", fix: "düzeltme bekliyor", sgk: "SGK kontrolü",
     obs: "OBS kaydı", ready: "staja hazır", during: "devam ediyor", deliver: "teslim zamanı",
     evaluating: "değerlendirmede", fix_defter: "defter düzeltmesi", accepted: "kabul edildi ✓", rejected: "reddedildi" };
-  const tabs = ME.applications.length > 1
-    ? `<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+  // Staj sekmeleri en üstte: mevcut başvurular + (3.-4. sınıfsa) "2. stajını da aç".
+  const canSecond = (ME.user.sinif ?? 3) >= 3 &&
+    ME.applications.filter(x => x.status !== "rejected").length === 1 && a && s !== "noplace";
+  const tabs = (ME.applications.length > 1 || canSecond)
+    ? `<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
         ${ME.applications.map(x => `<button class="${x.id === a?.id ? "big" : "quiet"}"
-          style="width:auto;max-width:none;padding:8px 18px;font-size:15px;margin:0"
+          style="width:auto;max-width:none;padding:9px 18px;font-size:15px;margin:0"
           onclick="switchStaj(${x.id})">${x.staj_no}. Staj · ${KISA[x.stage] || x.status}</button>`).join("")}
-       </div>` : "";
-
-  // 3.-4. sınıf: tek başvurusu varken ikincisini aynı dönemde açabilir.
-  if ((ME.user.sinif ?? 3) >= 3 && ME.applications.filter(x => x.status !== "rejected").length === 1 && a && s !== "noplace") {
-    side += `<div class="sidecard"><h4>İkinci staj</h4>
-      <p style="font-size:13.5px;color:#4b5563;margin-bottom:8px">3. ve 4. sınıflar iki stajı aynı dönemde
-      yapabilir. İkinci başvurunu şimdiden açabilirsin — tarihleri çakışmadığı sürece iki staj ayrı ayrı ilerler.</p>
-      <button class="quiet" style="font-size:14px;padding:9px" onclick="go('accept')">2. staj başvurusu aç</button>
-    </div>`;
-  }
+        ${canSecond ? `<button class="quiet" style="width:auto;max-width:none;padding:9px 18px;font-size:15px;margin:0;border-style:dashed"
+          onclick="go('accept')">+ 2. stajını da başlat</button>` : ""}
+       </div>
+       ${canSecond ? '<p class="hint" style="margin:-12px 0 18px">3. ve 4. sınıflar iki stajı aynı dönemde yapabilir; tarihler çakışmadığı sürece ikisi ayrı ayrı ilerler.</p>' : ""}` : "";
 
   // Mobilde yan panel alta iner; sürecin özeti üstte ince çubuk olarak kalır.
   el(`<div class="cols">
@@ -759,21 +778,25 @@ function chk() {
   $("upWhy").textContent = all ? "Hazırsın — gönderebilirsin." : "Listeyi tamamlayınca buton açılır.";
 }
 
-/* ───────── Belgelerim: her belge 8 sorusuyla ───────── */
-// Belge kartı standardı: öğrenci hiçbir belge için "bu ne, kim imzalar?" diye sormak zorunda kalmaz.
+/* ───────── Belgelerim ─────────
+   Sade görünüm: her belge tek satır özet + görünür İndir butonu.
+   "Kim doldurur, nereye gider?" ayrıntıları isteyene açılır. */
 const belgeKart = (b) => `
-  <div class="qa"><div class="q" onclick="this.parentNode.classList.toggle('open')">${b.icon} ${b.ad}
-    ${b.resmi ? `<span class="muted" style="font-weight:400">· ${b.resmi}</span>` : ""}</div>
-  <div class="a"><table style="width:100%;border-collapse:collapse;font-size:14.5px">
-    ${[["Bu belge nedir?", b.nedir], ["Neden gerekiyor?", b.neden], ["Kim dolduracak?", b.doldurur],
-       ["Kim imzalayacak?", b.imzalar], ["Kaşe gerekiyor mu?", b.kase], ["Ne zaman hazırlanmalı?", b.nezaman],
-       ["Nereye teslim edilecek?", b.nereye]]
-      .filter(([, v]) => v)
-      .map(([k, v]) => `<tr><td style="padding:5px 10px 5px 0;font-weight:600;white-space:nowrap;vertical-align:top">${k}</td>
-        <td style="padding:5px 0">${v}</td></tr>`).join("")}
-  </table>
-  ${b.indir ? `<a class="link" style="font-size:14px" href="${b.indir}" download>Belgeyi indir</a>` : ""}
-  </div></div>`;
+  <div class="doc">
+    <div class="doc-top">
+      <span class="doc-ad">${b.icon} ${b.ad}${b.resmi ? ` <span class="muted">(${b.resmi})</span>` : ""}</span>
+      ${b.indir ? `<a class="doc-indir" href="${b.indir}" download>İndir</a>` : ""}
+    </div>
+    <p class="doc-sum">${b.nedir}</p>
+    <details class="doc-det"><summary>Kim doldurur, nereye gider?</summary>
+      <table>${[["Neden gerekiyor?", b.neden], ["Kim dolduracak?", b.doldurur],
+        ["Kim imzalayacak?", b.imzalar], ["Kaşe gerekiyor mu?", b.kase],
+        ["Ne zaman?", b.nezaman], ["Nereye?", b.nereye]]
+        .filter(([, v]) => v)
+        .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}
+      </table>
+    </details>
+  </div>`;
 
 const BELGELER = {
   "Başvurudan önce gerekenler": [
@@ -854,21 +877,24 @@ const BELGELER = {
 
 function docsScreen() {
   nav("docs");
-  // Öğrencinin aşamasına uygun belge grubu açık gelir; diğerleri bir tık uzakta.
+  // Sadelik: yalnız bulunduğun aşamanın belgeleri açık gösterilir;
+  // diğer gruplar tek satırlık başlık altında katlanmıştır.
   const stageGroup = ["noplace", "draft", "review", "fix", "rejected"].includes(ME.stage)
     ? "Başvurudan önce gerekenler"
     : ["sgk", "obs", "ready", "during"].includes(ME.stage)
       ? "Staj sırasında kullanacakların" : "Teslim ederken gerekenler";
-  const mine = ME.documents.map(d =>
-    `<div class="qa open"><div class="q">✅ ${d.kind === "kabul" ? "Kabul belgen" : "Staj defterin"} — yüklendi</div>
-     <div class="a">${d.orig_name} · ${d.uploaded_at.slice(0, 10)}</div></div>`).join("");
+  const mine = ME.documents.length
+    ? `<div class="box ok" style="max-width:none">✅ Yüklediklerin: ${ME.documents.map(d =>
+        `${d.kind === "kabul" ? "kabul belgesi" : "staj defteri"} (${d.uploaded_at.slice(0, 10)})`).join(" · ")}</div>` : "";
   el(`<h1>Belgelerim</h1>
-    <p class="sub">Bulunduğun aşamada gerekenler açık geldi. Her belgenin yanında kimin dolduracağı, kimin imzalayacağı ve nereye gideceği yazar.</p>
+    <p class="sub">Şu an ihtiyacın olan belgeler aşağıda — her birinin yanında İndir butonu var.
+    Diğer aşamaların belgeleri alttaki başlıklarda katlı durur.</p>
     ${mine}
-    ${Object.entries(BELGELER).map(([grup, items]) => `
-      <h1 style="font-size:17px;margin-top:22px;color:${grup === stageGroup ? "#1e40af" : "#374151"}">${grup}${grup === stageGroup ? " · şu an buradasın" : ""}</h1>
-      ${items.map(b => belgeKart(b)).join("")}`).join("")}
-    <p class="hint" style="margin-top:14px">Form dosyaları (EK-1, EK-1A, EK-2) pilot sürümde bölüm sayfasından indirilir; canlı sürümde buradan inecek.</p>`);
+    <h1 style="font-size:18px;margin:20px 0 4px;color:#1e40af">${stageGroup}</h1>
+    ${BELGELER[stageGroup].map(belgeKart).join("")}
+    ${Object.entries(BELGELER).filter(([g]) => g !== stageGroup).map(([grup, items]) => `
+      <details style="margin-top:18px"><summary style="cursor:pointer;font-size:16.5px;font-weight:700;color:#374151;padding:6px 0">${grup} (${items.length} belge)</summary>
+      ${items.map(belgeKart).join("")}</details>`).join("")}`);
 }
 
 /* ───────── Staj rehberi: bütün sürecin sakin anlatımı ───────── */
