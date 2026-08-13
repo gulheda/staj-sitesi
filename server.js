@@ -284,11 +284,11 @@ app.post("/api/application/submit", auth(), (req, res) => {
   if (ov) return res.status(400).json({ error: ov });
   const docKinds = new Set(db.prepare(
     "SELECT DISTINCT kind FROM documents WHERE application_id=?").all(appRow.id).map(r => r.kind));
+  // EK-1 ve EK-3 her başvuruda zorunlu; EK-2 yalnız ücret ödenecekse istenir.
   if (!docKinds.has("kabul")) missing.push("kabul belgesi EK-1 (yüklenmemiş)");
-  if (appRow.ucret === "evet") {
-    if (!docKinds.has("ek2")) missing.push("ücret katkısı formu EK-2 (yüklenmemiş)");
-    if (!docKinds.has("ek3")) missing.push("ücret katkısı listesi EK-3 (yüklenmemiş)");
-  }
+  if (!docKinds.has("ek3")) missing.push("öğrenci bilgi evrakı EK-3 (yüklenmemiş)");
+  if (appRow.ucret === "evet" && !docKinds.has("ek2"))
+    missing.push("ücret katkısı formu EK-2 (yüklenmemiş)");
   if (missing.length)
     return res.status(400).json({ error: "Başvuru gönderilemedi. Eksik: " + missing.join(", ") + "." });
   const win = applicationWindow(appRow.tur);

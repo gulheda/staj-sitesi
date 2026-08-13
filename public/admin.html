@@ -87,7 +87,7 @@ function appCard(a) {
   const isDefter = a.status === "evaluating";
   const sicilOnly = !isDefter && a.status !== "submitted";
   const DOC_AD = { kabul: "Kabul belgesi (EK-1)", ek2: "Ücret katkısı formu (EK-2)",
-    ek3: "Ücret katkısı evrakı (EK-3)", defter: "Staj defteri" };
+    ek3: "Öğrenci bilgi evrakı (EK-3)", defter: "Staj defteri" };
   const docs = a.documents.map(d =>
     `<a href="/api/admin/file/${d.id}">📎 ${DOC_AD[d.kind] || d.kind} (${d.orig_name})</a>`).join(" · ") || "—";
   const tmpl = TEMPLATES.map((t, i) => `<option value="${i}">${t.slice(0, 70)}…</option>`).join("");

@@ -262,8 +262,9 @@ function home() {
       • 🎬 Vlog için fikir toplamaya başla — stajın ilk gününden çekim yapman gerekecek</div>`;
 
   if (s === "fix") {
-    const gerekli = [BELGE_YUKLE.kabul];
-    if (a.ucret === "evet") gerekli.push(BELGE_YUKLE.ek2, BELGE_YUKLE.ek3);
+    const gerekli = a.ucret === "evet"
+      ? [BELGE_YUKLE.kabul, BELGE_YUKLE.ek2, BELGE_YUKLE.ek3]
+      : [BELGE_YUKLE.kabul, BELGE_YUKLE.ek3];
     h = `
     <h1>Bir belgeyi düzeltmen gerekiyor.</h1>
     <p class="sub">Komisyonun notu:</p>
@@ -555,24 +556,26 @@ async function wizard(msg) {
     <label>İşletme staj ücreti ödeyecek mi?</label>
     <select id="ucret">${[["hayir", "Hayır"], ["evet", "Evet"], ["bilmiyorum", "Bilmiyorum"]]
       .map(([v, t]) => `<option value="${v}" ${a.ucret === v ? "selected" : ""}>${t}</option>`).join("")}</select>
-    <p class="hint">“Evet” dersen sonraki adımda ücret katkısı formu (EK-2) ve başvuru evrakı (EK-3) için
-    iki yükleme alanı daha açılır. Kamu kurumunda staj yapıyorsan EK-2/EK-3 gerekmez.</p>
+    <p class="hint">EK-3 evrakını ücret olsa da olmasa da herkes yükler. “Evet” dersen sonraki adımda
+    ayrıca ücret katkısı formu (EK-2) için bir alan açılır — kamu kurumunda staj yapıyorsan EK-2 gerekmez.</p>
     <button class="big" id="d5next" disabled onclick="wSaveDates()">Devam et</button>
     <p class="why" id="why">${a.start_date ? "" : "Devam etmek için başlangıç tarihini seç."}</p>${backB}`;
   }
 
   if (n === 5) {
     // Her belgenin kendi yükleme kutusu vardır; komisyon her birini ayrı görür.
+    // EK-1 ve EK-3 herkes için zorunlu; EK-2 yalnız ücret ödenecekse eklenir.
     const kinds = new Set(ME.documents.map(d => d.kind));
     const ucretli = a.ucret === "evet";
-    const gerekli = [BELGE_YUKLE.kabul];
-    if (ucretli) gerekli.push(BELGE_YUKLE.ek2, BELGE_YUKLE.ek3);
+    const gerekli = ucretli
+      ? [BELGE_YUKLE.kabul, BELGE_YUKLE.ek2, BELGE_YUKLE.ek3]
+      : [BELGE_YUKLE.kabul, BELGE_YUKLE.ek3];
     const eksikAd = gerekli.filter(b => !kinds.has(b.kind)).map(b => b.ad);
     body = `
-    <h1>${ucretli ? "Belgelerini yükle." : "Kabul belgesini yükle."}</h1>
+    <h1>Belgelerini yükle.</h1>
     <p class="sub">${ucretli
       ? "Ücret ödeneceği için üç belge gerekiyor. Her birini kendi kutusuna yükle — komisyon üçünü de ayrı ayrı kontrol edecek."
-      : "Kuruma imzalattığın belge. İmza <b>ve</b> kaşe olduğundan emin ol."}</p>
+      : "İki belge gerekiyor: kuruma imzalattığın kabul belgesi ve doldurduğun EK-3 evrakı. Her birini kendi kutusuna yükle."}</p>
     ${gerekli.map(b => uploadBox(b, kinds.has(b.kind))).join("")}
     <button class="big" id="nextBtn" ${eksikAd.length ? "disabled" : ""} onclick="wStep(6)">Devam et</button>
     <p class="why" id="why">${eksikAd.length ? "Devam etmek için yüklemen gerekenler: " + eksikAd.join(" · ") : ""}</p>${backB}`;
@@ -583,10 +586,8 @@ async function wizard(msg) {
     const kinds6 = new Set(ME.documents.map(d => d.kind));
     const eksik = [];
     if (!kinds6.has("kabul")) eksik.push([5, "Kabul belgesi (EK-1) yüklenmedi"]);
-    if (a.ucret === "evet") {
-      if (!kinds6.has("ek2")) eksik.push([5, "Ücret katkısı formu (EK-2) yüklenmedi"]);
-      if (!kinds6.has("ek3")) eksik.push([5, "Ücret katkısı başvuru evrakı (EK-3) yüklenmedi"]);
-    }
+    if (!kinds6.has("ek3")) eksik.push([5, "Öğrenci bilgi evrakı (EK-3) yüklenmedi"]);
+    if (a.ucret === "evet" && !kinds6.has("ek2")) eksik.push([5, "Ücret katkısı formu (EK-2) yüklenmedi"]);
     if (a.muh_unvan === "Bilmiyorum") eksik.push([3, "Sorumlu mühendisin unvanı seçilmedi"]);
     if (!a.start_date || !a.end_date) eksik.push([4, "Staj tarihleri seçilmedi"]);
     if (!a.kurum_adi) eksik.push([2, "Kurum bilgisi eksik"]);
@@ -596,9 +597,9 @@ async function wizard(msg) {
       ${a.tur === "donem" ? "Dönem içi staj" : "Yaz stajı"} · ${a.kurum_adi || "—"}<br>
       ${fmtDate(a.start_date)} – ${fmtDate(a.end_date)}${ME.progress ? ` (${ME.progress.total} iş günü ✓)` : ""}<br>
       Sorumlu: ${a.muh_ad || "—"}, ${a.muh_unvan || "—"}<br>
-      Kabul belgesi (EK-1) ${kinds6.has("kabul") ? "✓ yüklendi" : "— yüklenmedi"}
-      ${a.ucret === "evet" ? `<br>Ücret katkısı formu (EK-2) ${kinds6.has("ek2") ? "✓ yüklendi" : "— yüklenmedi"}<br>
-      Ücret katkısı başvuru evrakı (EK-3) ${kinds6.has("ek3") ? "✓ yüklendi" : "— yüklenmedi"}` : ""}
+      Kabul belgesi (EK-1) ${kinds6.has("kabul") ? "✓ yüklendi" : "— yüklenmedi"}<br>
+      Öğrenci bilgi evrakı (EK-3) ${kinds6.has("ek3") ? "✓ yüklendi" : "— yüklenmedi"}
+      ${a.ucret === "evet" ? `<br>Ücret katkısı formu (EK-2) ${kinds6.has("ek2") ? "✓ yüklendi" : "— yüklenmedi"}` : ""}
       <p style="margin-top:8px"><button class="link" onclick="wStep(1)">Bir şeyi değiştir</button></p>
     </div>
     ${eksik.length ? `<div class="box warn"><b>Göndermeden önce şunlar tamamlanmalı:</b><br>
@@ -776,8 +777,8 @@ const BELGE_YUKLE = {
     info: "Kuruma imzalattığın form — imza <b>ve</b> kaşe olduğundan emin ol." },
   ek2: { kind: "ek2", ad: "Ücret katkısı formu (EK-2)",
     info: 'Bilgisayarda doldurulur; sen ve işletme yetkilisi imzalar. <a href="/belgeler/ek2-ucret-issizlik-fonu-formu.pdf" download>Boş formu indir</a>. Kamu kurumunda staj yapıyorsan gerekmez — "ücret ödenecek mi" sorusuna dönüp cevabını değiştirebilirsin.' },
-  ek3: { kind: "ek3", ad: "Ücret katkısı başvuru evrakı (EK-3)",
-    info: 'Excel tablosunda kendi satırını doldurursun. <a href="/belgeler/staj-ucreti-fon-katkisi-basvuru-evraki.xlsx" download>Boş evrakı indir</a>.' },
+  ek3: { kind: "ek3", ad: "Öğrenci bilgi evrakı (EK-3)",
+    info: 'Ücret olsa da olmasa da her başvuruda doldurulur — Excel tablosunda kendi satırını doldurursun. <a href="/belgeler/staj-ucreti-fon-katkisi-basvuru-evraki.xlsx" download>Boş evrakı indir</a>.' },
 };
 function uploadBox(b, done) {
   return `<label style="margin-top:14px">${b.ad}</label>
@@ -914,11 +915,11 @@ const BELGELER = {
       nezaman: "Staj başlangıcından <b>en az 20 gün önce</b>.",
       nereye: "Bu sisteme yüklenir.",
       indir: "/belgeler/ek1a-zorunlu-staj-kabul-formu-donem-ici.pdf" },
-    { icon: "📊", ad: "Ücret katkısı başvuru evrakı", resmi: "EK-3",
-      nedir: "Staj ücreti alacak öğrenciler için İşsizlik Fonu katkısı başvurusunda kullanılan öğrenci bilgi tablosu (Excel).",
-      neden: "EK-2 formuyla birlikte devlet katkısının bağlanması için gerekir. Kamu kurumunda staj yapanlar doldurmaz. Önemli: 1. stajın SGK çıkışı yapılmadan sonraki staj için yeni sigorta girişi yapılamaz.",
+    { icon: "📊", ad: "Öğrenci bilgi evrakı", resmi: "EK-3",
+      nedir: "Staj bilgilerinin işlendiği öğrenci bilgi tablosu (Excel). Ücret alacaklar için İşsizlik Fonu katkısı başvurusunda da kullanılır.",
+      neden: "Her başvuruda gerekir; ücret ödenecekse EK-2 formuyla birlikte devlet katkısının bağlanmasında kullanılır. Önemli: 1. stajın SGK çıkışı yapılmadan sonraki staj için yeni sigorta girişi yapılamaz.",
       doldurur: "Kendi satırını sen doldurursun (ad, TC, öğrenci no, telefon, doğum tarihi…).",
-      nezaman: "Yalnızca 'ücret ödenecek' dediysen; başvuruyla birlikte.", nereye: "Bu sisteme yüklenir.",
+      nezaman: "Ücret olsa da olmasa da her başvuruda; başvuruyla birlikte.", nereye: "Bu sisteme yüklenir.",
       indir: "/belgeler/staj-ucreti-fon-katkisi-basvuru-evraki.xlsx" },
     { icon: "📄", ad: "Ücret katkısı bilgi formu", resmi: "EK-2",
       nedir: "İşletme sana staj ücreti ödeyecekse devlet katkısı için gereken form. <b>Kamu kurumlarında staj yapanlar için gerekmez.</b>",
@@ -983,7 +984,7 @@ function docsScreen() {
     : ["sgk", "obs", "ready", "during"].includes(ME.stage)
       ? "Staj sırasında kullanacakların" : "Teslim ederken gerekenler";
   const AD = { kabul: "kabul belgesi (EK-1)", ek2: "ücret katkısı formu (EK-2)",
-    ek3: "ücret katkısı evrakı (EK-3)", defter: "staj defteri" };
+    ek3: "öğrenci bilgi evrakı (EK-3)", defter: "staj defteri" };
   const mine = ME.documents.length
     ? `<div class="box ok" style="margin-top:0">✅ Yüklediklerin: ${ME.documents.map(d =>
         `${AD[d.kind] || d.kind} (${d.uploaded_at.slice(0, 10)})`).join(" · ")}</div>` : "";
