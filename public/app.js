@@ -66,6 +66,17 @@ async function refresh() {
 }
 function switchStaj(id) { selApp = id; go("home"); }
 
+// Stajım ekranı açıkken durum canlı tutulur: 30 sn'de bir ve pencereye
+// dönüldüğünde tazelenir — komisyonun kararı öğrenciye kendiliğinden düşer.
+let curRoute = null;
+setInterval(() => {
+  const a = document.activeElement;
+  if (curRoute !== "home" || document.hidden) return;
+  if (a && ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName)) return;
+  go("home");
+}, 30000);
+window.addEventListener("focus", () => { if (curRoute === "home") go("home"); });
+
 /* ───────── Giriş ─────────
    Sayısal alanlar yalnız rakam kabul eder ve hane sınırını aşamaz —
    harf yazmak veya fazla hane girmek fiziksel olarak imkânsızdır. */
@@ -186,7 +197,7 @@ function home() {
   if (s === "draft") h = `
     <h1>Başvurun yarım kaldı.</h1>
     <p class="sub">Bilgilerin kaydedildi — kaldığın yerden devam edebilirsin.</p>
-    <button class="big" onclick="go('wizard')">Devam et (Adım ${a.wizard_step}/7)</button>`;
+    <button class="big" onclick="go('wizard')">Devam et (Adım ${Math.min(a.wizard_step, 6)}/6)</button>`;
 
   if (s === "review") h = `
     <h1>Başvurun inceleniyor.</h1>
@@ -378,15 +389,15 @@ async function startApplication(tur) {
 }
 
 /* ───────── 7 adımlı sihirbaz ───────── */
-const STEP_NAMES = ["Bilgilerin", "Staj türün", "Kurum", "Sorumlu mühendis", "Tarihler", "Belge", "Kontrol"];
+const STEP_NAMES = ["Bilgilerin", "Kurum", "Sorumlu mühendis", "Tarihler", "Belge", "Kontrol"];
 
 async function wizard(msg) {
   nav("home");
   // Sihirbaz her zaman seçili başvuru üzerinde çalışır (iki staj olabilir).
   wizardApp = (wizardApp && wizardApp.id === ME.application?.id) ? wizardApp : ME.application;
-  const a = wizardApp, n = a.wizard_step || 1;
-  const head = `<div class="prog"><div class="bar"><i class="blue" style="width:${Math.round(n / 7 * 100)}%"></i></div>
-    <div class="txt"><span>Adım ${n}/7 · ${STEP_NAMES[n - 1]}</span></div></div>${msg ? errBox(msg) : ""}`;
+  const a = wizardApp, n = Math.min(a.wizard_step || 1, 6);
+  const head = `<div class="prog"><div class="bar"><i class="blue" style="width:${Math.round(n / 6 * 100)}%"></i></div>
+    <div class="txt"><span>Adım ${n}/6 · ${STEP_NAMES[n - 1]}</span></div></div>${msg ? errBox(msg) : ""}`;
   const backB = n > 1 ? `<button class="quiet" onclick="wStep(${n - 1})">← Geri</button>`
     : `<button class="quiet" onclick="go('home')">← Çık (bilgilerin kaydedilir)</button>`;
   let body = "";
@@ -402,16 +413,8 @@ async function wizard(msg) {
     <button class="big" id="nextBtn" disabled onclick="wPhone()">Devam et</button>
     <p class="why" id="why"></p>${backB}`;
 
-  if (n === 2) body = `
-    <h1>Stajını ne zaman yapacaksın?</h1>
-    <label class="radio"><input type="radio" name="t" value="yaz" ${a.tur !== "donem" ? "checked" : ""}> Yaz tatilinde</label>
-    <label class="radio"><input type="radio" name="t" value="donem" ${a.tur === "donem" ? "checked" : ""}> Dönem içinde <span class="muted">(haftada en az 3 gün)</span></label>
-    <div class="box info" style="font-size:14px">📅 <b>Başvuru dönemleri:</b><br>
-      • Yaz stajı: <b>1 Haziran – 15 Temmuz</b> arasında<br>
-      • Dönem içi: her ayın <b>10. gününe kadar</b> (10 dâhil)</div>
-    <button class="big" onclick="wSave(3,{tur:document.querySelector('input[name=t]:checked').value})">Devam et</button>${backB}`;
 
-  if (n === 3) {
+  if (n === 2) {
     const abroad = !!a.yurtdisi;
     // Kayıtlı değerleri geri doldur: yurt dışıysa "Şehir, Ülke" biçiminde saklanır.
     let savedIl = "", savedUlke = "", savedSehir = "";
@@ -421,18 +424,18 @@ async function wizard(msg) {
     body = `
     <h1>Staj yapacağın kurum</h1>
     <label>Kurumun adı</label>
-    <input id="kadi" maxlength="80" value="${a.kurum_adi || ""}" placeholder="Şirketin tam adını yaz" oninput="stepCheck(3)">
+    <input id="kadi" maxlength="80" value="${a.kurum_adi || ""}" placeholder="Şirketin tam adını yaz" oninput="stepCheck(2)">
     <label>Kurum nerede?</label>
     <label class="radio"><input type="radio" name="yer" value="tr" ${abroad ? "" : "checked"} onchange="yerToggle()"> Türkiye'de</label>
     <label class="radio"><input type="radio" name="yer" value="yd" ${abroad ? "checked" : ""} onchange="yerToggle()"> Yurt dışında</label>
     <div id="yerTr" style="display:${abroad ? "none" : "block"}">
       <label>İl</label>
-      <select id="il" onchange="stepCheck(3)"><option value="">— il seç —</option>
+      <select id="il" onchange="stepCheck(2)"><option value="">— il seç —</option>
         ${ILLER.map(i => `<option ${savedIl === i ? "selected" : ""}>${i}</option>`).join("")}</select>
     </div>
     <div id="yerYd" style="display:${abroad ? "block" : "none"}">
       <label>Ülke</label>
-      <select id="ulke" onchange="stepCheck(3)"><option value="">— ülke seç —</option>
+      <select id="ulke" onchange="stepCheck(2)"><option value="">— ülke seç —</option>
         ${ULKELER.map(u => `<option ${savedUlke === u ? "selected" : ""}>${u}</option>`).join("")}</select>
       <label>Şehir</label>
       <input id="ksehir" maxlength="40" value="${savedSehir}" placeholder="ör. Berlin" oninput="lettersOnly(this);stepCheck(3)">
@@ -440,24 +443,24 @@ async function wizard(msg) {
         <b>SGK'yı kendi imkânlarınla yaptırman gerekir.</b> Komisyon başvurunu buna göre değerlendirecek.</div>
     </div>
     <label>Ne üzerine çalışıyor?</label>
-    <select id="faal" onchange="$('faalDsat').style.display=this.value==='Diğer'?'block':'none';stepCheck(3)">
+    <select id="faal" onchange="$('faalDsat').style.display=this.value==='Diğer'?'block':'none';stepCheck(2)">
       <option value="">— alan seç —</option>
       ${FAALIYETLER.map(f => `<option ${a.kurum_faaliyet === f ? "selected" : ""}>${f}</option>`).join("")}
       <option ${a.kurum_faaliyet && !faalStd ? "selected" : ""}>Diğer</option>
     </select>
     <div id="faalDsat" style="display:${a.kurum_faaliyet && !faalStd ? "block" : "none"}">
       <label>Kısaca yaz</label>
-      <input id="faalD" value="${!faalStd ? (a.kurum_faaliyet || "") : ""}" placeholder="ör. tarım makineleri üretiyor" oninput="stepCheck(3)">
+      <input id="faalD" value="${!faalStd ? (a.kurum_faaliyet || "") : ""}" placeholder="ör. tarım makineleri üretiyor" oninput="stepCheck(2)">
     </div>
     <button class="big" id="nextBtn" disabled onclick="wSaveKurum()">Devam et</button>
     <p class="why" id="why"></p>${backB}`;
   }
 
-  if (n === 4) body = `
+  if (n === 3) body = `
     <h1>Senden sorumlu mühendis kim?</h1>
     <label>Adı soyadı</label>
     <input id="mad" maxlength="60" value="${a.muh_ad || ""}" placeholder="Mühendisin adı ve soyadı"
-      oninput="lettersOnly(this);stepCheck(4)">
+      oninput="lettersOnly(this);stepCheck(3)">
     <label>Unvanı</label>
     <select id="munvan" onchange="$('dk').style.display=this.value==='Bilmiyorum'?'block':'none'">
       ${["Bilgisayar Mühendisi", "Yazılım Mühendisi", "İlgili alanda mühendis", "Bilmiyorum"]
@@ -466,10 +469,10 @@ async function wizard(msg) {
     <div id="dk" style="display:${a.muh_unvan === "Bilmiyorum" ? "block" : "none"}" class="box info">
       Sorun değil — kuruma şunu sor:<br><i>“Staj süresince benden sorumlu olacak mühendisin adı ve unvanı nedir?”</i><br>
       Cevabı alınca dönüp devam edersin; bilgilerin kaydedildi. <b>Unvan öğrenilmeden başvuru gönderilemez.</b></div>
-    <button class="big" id="nextBtn" disabled onclick="wSave(5,{muh_ad:$('mad').value.trim(),muh_unvan:$('munvan').value})">Devam et</button>
+    <button class="big" id="nextBtn" disabled onclick="wSave(4,{muh_ad:$('mad').value.trim(),muh_unvan:$('munvan').value})">Devam et</button>
     <p class="why" id="why"></p>${backB}`;
 
-  if (n === 5) {
+  if (n === 4) {
     const donem = a.tur === "donem";
     const savedDays = (a.calisma_gunleri || "").split(",").filter(Boolean).map(Number);
     const DAY_NAMES = [[1, "Pzt"], [2, "Sal"], [3, "Çar"], [4, "Per"], [5, "Cum"]];
@@ -503,7 +506,7 @@ async function wizard(msg) {
     <p class="why" id="why">${a.start_date ? "" : "Devam etmek için başlangıç tarihini seç."}</p>${backB}`;
   }
 
-  if (n === 6) {
+  if (n === 5) {
     const hasKabul = ME.documents.some(d => d.kind === "kabul");
     body = `
     <h1>Kabul belgesini yükle.</h1>
@@ -511,17 +514,17 @@ async function wizard(msg) {
     ${a.ucret === "evet" ? '<div class="box info">Ücret ödeneceği için <b>EK-2 (ücret katkısı) belgesi</b> de gerekiyor — pilot sürümde kabul belgesiyle birlikte tek dosyada yükleyebilirsin.</div>' : ""}
     <div class="upload ${hasKabul ? "done" : ""}" id="up" onclick="pickFile('kabul')">
       ${hasKabul ? "✓ Belgeni aldık · <u>değiştir</u>" : "Belgeyi buraya yükle: <u>dosya seç</u><br><span class='muted'>PDF veya fotoğraf · en fazla 10 MB</span>"}</div>
-    <button class="big" id="nextBtn" ${hasKabul ? "" : "disabled"} onclick="wStep(7)">Devam et</button>
+    <button class="big" id="nextBtn" ${hasKabul ? "" : "disabled"} onclick="wStep(6)">Devam et</button>
     <p class="why" id="why">${hasKabul ? "" : "Devam etmek için imzalı ve kaşeli kabul belgeni yüklemelisin."}</p>${backB}`;
   }
 
-  if (n === 7) {
+  if (n === 6) {
     // Son adım asla hata vermez: eksikler burada listelenir, buton eksik varken kapalıdır.
     const eksik = [];
-    if (!ME.documents.some(d => d.kind === "kabul")) eksik.push([6, "Kabul belgesi yüklenmedi"]);
-    if (a.muh_unvan === "Bilmiyorum") eksik.push([4, "Sorumlu mühendisin unvanı seçilmedi"]);
-    if (!a.start_date || !a.end_date) eksik.push([5, "Staj tarihleri seçilmedi"]);
-    if (!a.kurum_adi) eksik.push([3, "Kurum bilgisi eksik"]);
+    if (!ME.documents.some(d => d.kind === "kabul")) eksik.push([5, "Kabul belgesi yüklenmedi"]);
+    if (a.muh_unvan === "Bilmiyorum") eksik.push([3, "Sorumlu mühendisin unvanı seçilmedi"]);
+    if (!a.start_date || !a.end_date) eksik.push([4, "Staj tarihleri seçilmedi"]);
+    if (!a.kurum_adi) eksik.push([2, "Kurum bilgisi eksik"]);
     body = `
     <h1>Son kontrol.</h1>
     <div class="box info">
@@ -539,7 +542,7 @@ async function wizard(msg) {
 
   el(head + body);
   if (STEP_REQ[n]) stepCheck(n);
-  if (n === 5 && a.start_date) (a.end_date ? dateCheck() : onDatesInput());
+  if (n === 4 && a.start_date) (a.end_date ? dateCheck() : onDatesInput());
 }
 
 /* Adım kilidi: gerekli alanlar dolana kadar "Devam et" kapalıdır ve nedeni
@@ -566,12 +569,12 @@ function yerToggle() {
   const abroad = document.querySelector('input[name="yer"]:checked').value === "yd";
   $("yerTr").style.display = abroad ? "none" : "block";
   $("yerYd").style.display = abroad ? "block" : "none";
-  stepCheck(3);
+  stepCheck(2);
 }
 
 const STEP_REQ = {
   1: [["telefon", telOk, "0 ile başlayan 11 haneli telefon numaranı yaz"]],
-  3: () => {
+  2: () => {
     const out = [];
     if (($("kadi").value || "").trim().length < 3) out.push("kurumun adını yaz");
     const abroad = document.querySelector('input[name="yer"]:checked')?.value === "yd";
@@ -584,7 +587,7 @@ const STEP_REQ = {
     else if (f === "Diğer" && ($("faalD").value || "").trim().length < 3) out.push("ne iş yaptığını kısaca yaz");
     return out;
   },
-  4: [["mad", v => v.trim().length >= 5 && v.trim().includes(" "), "mühendisin adını ve soyadını yaz"]],
+  3: [["mad", v => v.trim().length >= 5 && v.trim().includes(" "), "mühendisin adını ve soyadını yaz"]],
 };
 function stepCheck(n) {
   const btn = $("nextBtn"), why = $("why");
@@ -600,7 +603,7 @@ function wSaveKurum() {
   const abroad = document.querySelector('input[name="yer"]:checked').value === "yd";
   const sehir = abroad ? `${$("ksehir").value.trim()}, ${$("ulke").value}` : $("il").value;
   const faal = $("faal").value === "Diğer" ? $("faalD").value.trim() : $("faal").value;
-  wSave(4, { kurum_adi: $("kadi").value.trim(), kurum_sehir: sehir, kurum_faaliyet: faal, yurtdisi: abroad ? 1 : 0 });
+  wSave(3, { kurum_adi: $("kadi").value.trim(), kurum_sehir: sehir, kurum_faaliyet: faal, yurtdisi: abroad ? 1 : 0 });
 }
 
 function wPhone() {
@@ -680,7 +683,7 @@ function applySuggestion() {
 }
 async function wSaveDates() {
   if (!lastDateCheck || !lastDateCheck.ok) { onDatesInput(); return; }
-  wSave(6, { start_date: $("d1").value, end_date: $("d2").value, ucret: $("ucret").value,
+  wSave(5, { start_date: $("d1").value, end_date: $("d2").value, ucret: $("ucret").value,
     cumartesi: $("cmt")?.checked ? 1 : 0,
     calisma_gunleri: wizardApp.tur === "donem" ? pickedDays().join(",") : null });
 }
@@ -1067,6 +1070,7 @@ async function sendQ() {
 const routes = { home, wizard, sgk: sgkScreen, deliver: deliverScreen, docs: docsScreen,
   help: helpScreen, accept: acceptScreen, guide: guideScreen, profil: profilScreen };
 async function go(name) {
+  curRoute = routes[name] ? name : "home";
   try { await refresh(); } catch { return loginScreen(); }
   (routes[name] || home)();
 }
