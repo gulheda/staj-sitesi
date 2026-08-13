@@ -76,7 +76,7 @@ function loginScreen(msg, first) {
     if (localStorage.getItem("girisModu") === "normal") first = false;
     else {
       el(`
-      <div style="margin-top:40px">
+      <div style="max-width:560px;margin:30px auto">
         <h1>BAÜN Staj Portalı</h1>
         <p class="sub">Bilgisayar Mühendisliği staj işlemlerinin tamamı burada.<br>Sana uygun olanı seç:</p>
         <label class="radio" onclick="loginScreen('',true)" style="padding:18px">
@@ -90,7 +90,7 @@ function loginScreen(msg, first) {
     }
   }
   el(`
-    <div style="margin-top:40px">
+    <div style="max-width:560px;margin:30px auto">
       <h1>${first ? "İlk giriş" : "Giriş yap"}</h1>
       <p class="sub">${first ? "Kimliğini doğrulayalım — sonra kendi şifreni oluşturacaksın." : "Öğrenci numaran ve şifrenle gir."}</p>
       ${msg ? errBox(msg) : ""}
@@ -139,7 +139,7 @@ async function doLogin(first) {
 
 function setPassScreen(name, msg) {
   el(`
-    <div style="margin-top:40px">
+    <div style="max-width:560px;margin:30px auto">
       <h1>Merhaba ${name.split(" ")[0]} 👋</h1>
       <p class="sub">Kimliğini doğruladık. Artık kendine bir şifre belirle — bundan sonra TC numaranla değil, bu şifreyle gireceksin.</p>
       ${msg ? errBox(msg) : ""}
