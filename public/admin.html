@@ -141,7 +141,7 @@ async function load() {
       <h1>Komisyon Paneli</h1>
       <span class="stats">düzeltme bekleyen: ${d.stats.fix} · kabul edilen staj: ${d.stats.accepted} ·
         <a href="#" onclick="load();return false">yenile</a> ·
-        <a href="#" onclick="api('/logout',{method:'POST'}).then(()=>loginScreen());return false">çıkış</a><br>
+        <a href="#" onclick="api('/admin/logout',{method:'POST'}).then(()=>loginScreen());return false">çıkış</a><br>
         <span style="font-size:12px">son güncelleme: ${new Date().toLocaleTimeString("tr-TR")} — 30 sn'de bir kendini yeniler</span></span>
     </header>
     <h2>Bekleyen işler (${d.apps.length})</h2>

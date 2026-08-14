@@ -46,14 +46,17 @@ app.use((req, res, next) => {   // temel güvenlik başlıkları
 app.use(express.static(path.join(__dirname, "public")));
 
 // ── Oturum: httpOnly çerez + veritabanında saklanır (yeniden başlatmada düşmez) ──
-function setSession(res, userId) {
+// Öğrenci ve komisyon oturumları ayrı çerez adları kullanır (sid / asid).
+// Böylece aynı tarayıcıda ikisi bağımsız çalışır: birine giriş/çıkış diğerini etkilemez.
+function cookieNameFor(role) { return role === "admin" ? "asid" : "sid"; }
+function setSession(res, userId, role) {
   const sid = crypto.randomBytes(24).toString("hex");
   db.prepare("INSERT INTO sessions (sid, user_id) VALUES (?,?)").run(sid, userId);
-  res.setHeader("Set-Cookie", `sid=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`);
+  res.setHeader("Set-Cookie", `${cookieNameFor(role)}=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`);
 }
-function getUser(req) {
+function getUser(req, cookieName = "sid") {
   const sid = (req.headers.cookie || "").split(";").map(s => s.trim())
-    .find(s => s.startsWith("sid="))?.slice(4);
+    .find(s => s.startsWith(cookieName + "="))?.slice(cookieName.length + 1);
   if (!sid || !/^[a-f0-9]{48}$/.test(sid)) return null;
   const row = db.prepare("SELECT user_id FROM sessions WHERE sid=?").get(sid);
   return row ? db.prepare("SELECT * FROM users WHERE id=?").get(row.user_id) : null;
@@ -71,7 +74,7 @@ function noteFail(no) {
 }
 function auth(role) {
   return (req, res, next) => {
-    const u = getUser(req);
+    const u = getUser(req, cookieNameFor(role));
     if (!u) return res.status(401).json({ error: "Oturum bulunamadı. Yeniden giriş yap." });
     if (role && u.role !== role) return res.status(403).json({ error: "Bu işlem için yetkin yok." });
     req.user = u;
@@ -161,7 +164,7 @@ app.post("/api/login", (req, res) => {
       noteFail(key);
       return res.status(401).json({ error: "Bu hesapla henüz şifre oluşturulmamış — ilk girişini yapacaksın. Şifre alanına TC kimlik numaranı yaz. Yazdıysan ve bu hatayı görüyorsan, TC'n bölümün kayıtlarındakiyle eşleşmiyor demektir: numaralarını kontrol et, sorun sürerse bölüm sekreterliğine bildir." });
     }
-    setSession(res, u.id);
+    setSession(res, u.id, u.role);
     return res.json({ firstLogin: true, name: u.name });
   }
   if (!verify(pass || "", u.password_hash)) {
@@ -169,7 +172,7 @@ app.post("/api/login", (req, res) => {
     return res.status(401).json({ error: "Şifre yanlış. Unuttuysan 'Şifremi unuttum' bağlantısını kullan." });
   }
   attempts.delete(key);
-  setSession(res, u.id);
+  setSession(res, u.id, u.role);
   res.json({ ok: true, role: u.role, name: u.name });
 });
 
@@ -180,12 +183,19 @@ app.post("/api/set-password", auth(), (req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/api/logout", (req, res) => {
-  const sid = (req.headers.cookie || "").match(/sid=([a-f0-9]+)/)?.[1];
-  if (sid) db.prepare("DELETE FROM sessions WHERE sid=?").run(sid);
-  res.setHeader("Set-Cookie", "sid=; HttpOnly; Path=/; Max-Age=0");
-  res.json({ ok: true });
-});
+// Öğrenci ve komisyon çıkışı ayrı uçlardan yapılır — biri diğerinin
+// oturumuna dokunmaz (aynı tarayıcıda iki sekme açık olsa bile).
+function logoutRoute(cookieName) {
+  return (req, res) => {
+    const sid = (req.headers.cookie || "").split(";").map(s => s.trim())
+      .find(s => s.startsWith(cookieName + "="))?.slice(cookieName.length + 1);
+    if (sid) db.prepare("DELETE FROM sessions WHERE sid=?").run(sid);
+    res.setHeader("Set-Cookie", `${cookieName}=; HttpOnly; Path=/; Max-Age=0`);
+    res.json({ ok: true });
+  };
+}
+app.post("/api/logout", logoutRoute("sid"));
+app.post("/api/admin/logout", logoutRoute("asid"));
 
 // ─────────── Öğrenci durumu ───────────
 app.get("/api/me", auth(), (req, res) => {
@@ -499,7 +509,7 @@ if (process.env.DEMO_VERI !== "0") {
   app.get("/demo-giris/:no", (req, res) => {
     const u = db.prepare("SELECT * FROM users WHERE ogrenci_no=?").get(req.params.no);
     if (!u) return res.status(404).send("bulunamadı");
-    setSession(res, u.id);
+    setSession(res, u.id, u.role);
     res.redirect(u.role === "admin" ? "/admin.html" : "/");
   });
 }

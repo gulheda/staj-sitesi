@@ -283,11 +283,11 @@ function home() {
     const sgkSon = new Date(new Date(a.start_date) - 3 * 86400000).toISOString().slice(0, 10);
     h = `
     <h1>Başvurun onaylandı ✓</h1>
-    <p class="sub">Stajın <b>${fmtDate(a.start_date)}</b> tarihinde başlıyor${daysTo(a.start_date) > 0 ? ` (${daysTo(a.start_date)} gün kaldı)` : ""}. Başlamadan önce tek bir işin var:</p>
+    <p class="sub">Stajın <b>${fmtDate(a.start_date)}</b>'de başlıyor${daysTo(a.start_date) > 0 ? ` — ${daysTo(a.start_date)} gün kaldı` : ""}. Başlamadan önce tek bir işin var:</p>
     <div class="box info"><b>Sigorta (SGK) girişini kontrol et.</b><br>
-      Sigortanı üniversite yapar — sen sadece yapılmış mı diye bakacaksın. 2 dakika sürer.</div>
-    <button class="big" onclick="go('sgk')">Nasıl bakacağımı göster</button>
-    <p class="hint" style="margin-top:14px">📅 Yaklaşan tarihler: <b>${fmtDate(sgkSon)}</b> — SGK kontrolü için son gün · <b>${fmtDate(a.start_date)}</b> — staj başlangıcın${ME.progress ? ` · toplam <b>${ME.progress.total} iş günü</b>` : ""}</p>`;
+      Sigortanı üniversite yapar — sen sadece yapılmış mı diye bakacaksın. 2 dakika sürer.<br>
+      <span class="muted">Son kontrol günün: ${fmtDate(sgkSon)}</span></div>
+    <button class="big" onclick="go('sgk')">Nasıl bakacağımı göster</button>`;
   }
 
   if (s === "obs") h = `
