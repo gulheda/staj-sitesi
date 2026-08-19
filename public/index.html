@@ -64,6 +64,55 @@
        border:1px solid var(--line);border-radius:9px;box-shadow:0 1px 3px rgba(10,25,50,.08)}
   main.wide{max-width:1380px;background:transparent;border:0;box-shadow:none;padding:32px 32px}
   main.full{max-width:1380px;background:transparent;border:0;box-shadow:none;padding:32px 32px}
+  main.hero{max-width:none;width:100%;margin:0;padding:0;border:0;box-shadow:none;
+            background:transparent;flex:1}
+
+  /* ── Giriş ekranı: kurumsal kimlik solda, form sağda.
+        Bilerek iç içe flex kullanılmadı (tarayıcıda dar ekranlarda
+        taşmaya yol açabiliyor); yatay ortalama margin:auto ile,
+        genişlik sınırı ise her kutuda ayrı ayrı max-width ile. ── */
+  .loginwrap{display:flex;width:100%;min-width:0;min-height:640px;box-sizing:border-box}
+  .loginhero{flex:1 1 0;min-width:0;position:relative;overflow:hidden;box-sizing:border-box;
+             background:var(--navy);color:#fff;padding:64px 5vw}
+  .loginhero-grid{position:absolute;inset:0;z-index:0}
+  .loginhero-glow{position:absolute;width:520px;height:520px;border-radius:50%;
+                   background:radial-gradient(circle,rgba(240,172,30,.22),transparent 70%);
+                   top:-160px;right:-160px;z-index:0}
+  .loginhero-in{position:relative;z-index:1;max-width:440px}
+  .loginhero-eyeb{font-size:13.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  .loginhero-h{font-family:var(--font-baslik);font-weight:800;font-size:42px;line-height:1.12;
+               margin:10px 0 6px;letter-spacing:-.01em;color:#fff}
+  .loginhero-dept{font-size:18px;color:#c3d4f5;font-weight:500;margin-bottom:22px}
+  .loginhero-tag{font-size:16.5px;line-height:1.6;color:#dbe6fa;max-width:400px}
+  .loginhero-steps{list-style:none;margin-top:38px;position:relative;max-width:340px}
+  .loginhero-steps::before{content:"";position:absolute;left:19px;top:8px;bottom:8px;width:2px;
+                            background:rgba(255,255,255,.18)}
+  .loginhero-steps li{display:flex;align-items:center;gap:16px;padding:9px 0;position:relative}
+  .lhs-i{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);
+         display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+         position:relative;z-index:1;border:1.5px solid rgba(255,255,255,.2)}
+  .loginhero-steps span:last-child{font-size:16px;color:#e7edfa;font-weight:500}
+
+  .loginform{flex:1 1 0;min-width:0;box-sizing:border-box;padding:64px 5vw;background:var(--bg)}
+  .loginform-in{max-width:400px;margin:0 auto}
+  .loginform-h{font-family:var(--font-baslik);font-weight:800;font-size:28px;color:var(--ink);margin-bottom:6px}
+  .ifield{position:relative;max-width:400px}
+  .ifield-i{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:17px;
+            opacity:.55;pointer-events:none}
+  .ifield input{padding-left:46px;box-sizing:border-box}
+  .ifield-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;
+              cursor:pointer;font-size:18px;padding:9px 10px;border-radius:6px}
+  .ifield-eye:hover{background:#eef2f8}
+  @media (max-width:900px){
+    .loginwrap{flex-direction:column}
+    /* Dikey düzende panel yüksekliği artık eşit paylaşım değil, kendi
+       içeriği kadar olmalı — yoksa overflow:hidden ile birlikte flex
+       öğesi içeriğinden daha kısa hesaplanıp üstü kırpılabiliyor. */
+    .loginhero{flex:0 0 auto;padding:40px 28px}
+    .loginhero-h{font-size:32px}
+    .loginhero-steps{display:none}
+    .loginform{flex:1 1 auto;padding:36px 24px}
+  }
   .panel{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:36px 44px;
          margin-bottom:22px;box-shadow:0 1px 3px rgba(10,25,50,.08)}
   .docgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(390px,1fr));gap:16px;margin-top:12px}
