@@ -113,29 +113,29 @@ function loginScreen(msg) {
   document.body.classList.remove("staj2");
   // Tek form, tek yol: ilk kez giren şifre alanına TC'sini yazar,
   // sistem onu tanıyıp şifre oluşturmaya götürür. Ayrı "ilk giriş" ekranı yoktur.
+  // Aynı bilgi yalnızca BİR yerde söylenir (tek küçük ipucu satırı) — tekrar yok.
   // Numara tarayıcıda hatırlanır; Enter her iki alandan da çalışır.
   const sonNo = localStorage.getItem("sonNo") || "";
   el(`
-    <div style="max-width:560px;margin:30px auto">
+    <div style="max-width:460px;margin:40px auto">
       <h1>BAÜN Staj Portalı</h1>
       <p class="sub">Bilgisayar Mühendisliği staj işlemlerinin tamamı burada.</p>
       ${msg ? errBox(msg) : ""}
       <label>Öğrenci numaran</label>
-      <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Öğrenci numaran (sadece rakam)"
+      <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Sadece rakam"
         autocomplete="username" value="${sonNo}" oninput="digitsOnly(this,12)"
         onkeydown="if(event.key==='Enter')$('pw').focus()">
-      <label>Şifren <span class="muted">(ilk girişse: TC kimlik numaran)</span></label>
+      <label>Şifren</label>
       <div style="position:relative;max-width:580px">
-        <input id="pw" type="password" maxlength="64" placeholder="Şifren — ilk girişse TC kimlik numaran"
+        <input id="pw" type="password" maxlength="64" placeholder="Şifren"
           autocomplete="current-password" style="padding-right:52px"
           onkeydown="if(event.key==='Enter')doLogin()">
         <button type="button" onclick="const p=$('pw');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁':'🙈'"
           style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;font-size:19px;padding:6px" title="Şifreyi göster/gizle">👁</button>
       </div>
-      <button class="big" id="loginBtn" onclick="doLogin()">Giriş yap</button>
-      <div class="box info" style="margin-top:16px">İlk kez mi giriyorsun? Şifre alanına <b>TC kimlik numaranı</b> yaz —
-        girişten sonra kendi şifreni oluşturacaksın. Daha önce şifre oluşturduysan şifrenle girersin.</div>
-      <p class="center" style="margin-top:12px">
+      <p class="hint">İlk kez giriyorsan: şifre yerine <b>TC kimlik numaranı</b> yaz.</p>
+      <button class="big" id="loginBtn" onclick="doLogin()" style="width:100%;min-width:0">Giriş yap</button>
+      <p class="center" style="margin-top:14px">
         <button class="link" style="font-size:13.5px"
           onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button>
       </p>
