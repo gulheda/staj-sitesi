@@ -1180,9 +1180,11 @@ async function go(name) {
   curRoute = routes[name] ? name : "home";
   try { await refresh(); } catch { return loginScreen(); }
   // İlk kez gelen ve hiç başvurusu olmayan öğrenciye önce tanıtım turu açılır
-  // (bir kez; sonra Rehber'den istediğinde yeniden izler).
-  if (curRoute === "home" && !ME.applications.length && !localStorage.getItem("turGoruldu")) {
-    localStorage.setItem("turGoruldu", "1");
+  // (bir kez; hesaba bağlıdır — tarayıcı/cihaz değişse de tekrar çıkmaz).
+  // Sonra Rehber sayfasından istediği zaman yeniden izleyebilir.
+  if (curRoute === "home" && !ME.applications.length && !ME.user.tur_gorundu) {
+    api("/tur-gorundu", { method: "POST" }).catch(() => {});
+    ME.user.tur_gorundu = true;
     return tour(0);
   }
   (routes[name] || home)();

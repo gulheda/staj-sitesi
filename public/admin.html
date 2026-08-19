@@ -5,13 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Komisyon Paneli — BAÜN Staj</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  body { font-family: 'Inter', "Segoe UI", system-ui, -apple-system, sans-serif;
          background: #f3f5f9; color: #1c2430; font-size: 17px; line-height: 1.55; }
   .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 36px 60px; }
   header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
-  h1 { font-size: 25px; font-family: Georgia, "Times New Roman", serif; color: #0f3d78; }
+  h1 { font-size: 25px; font-family: 'Poppins', "Segoe UI", sans-serif; font-weight: 800; color: #0b3fae; }
   h2 { font-size: 17.5px; margin: 26px 0 10px; text-transform: uppercase; letter-spacing: .04em; color: #5c6b80; }
   .stats { color: #5c6b80; font-size: 15.5px; }
   .card { background: #fff; border: 1px solid #dbe1ea; border-radius: 9px; padding: 20px 22px; margin: 12px 0; }
@@ -19,10 +22,10 @@
   .who { font-weight: 700; font-size: 18px; }
   .meta { color: #5c6b80; font-size: 15.5px; margin: 6px 0; }
   .badge { display: inline-block; font-size: 14px; font-weight: 700; border-radius: 5px; padding: 4px 11px; }
-  .b-sub { background: #e8f0fd; color: #1f5fd1; }
+  .b-sub { background: #e6efff; color: #0d6efd; }
   .b-def { background: #fef9c3; color: #854d0e; }
   .b-sic { background: #dcfce7; color: #166534; }
-  .b-staj { background: #0f3d78; color: #fff; }
+  .b-staj { background: #0b3fae; color: #fff; }
   button { font-family: inherit; font-size: 15.5px; border-radius: 7px; padding: 10px 16px; cursor: pointer;
            border: 1.5px solid #c7ced9; background: #fff; margin: 4px 6px 0 0; }
   button.ok { background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 600; }
@@ -30,13 +33,13 @@
   button.bad { color: #b91c1c; border-color: #fca5a5; }
   select, textarea, input { font-family: inherit; font-size: 15.5px; border: 1.5px solid #c7ced9;
     border-radius: 7px; padding: 10px 12px; width: 100%; margin-top: 6px; }
-  a { color: #1f5fd1; }
+  a { color: #0d6efd; }
   .empty { color: #5c6b80; background: #fff; border: 1px dashed #c7ced9; border-radius: 9px;
            padding: 18px; text-align: center; }
   .login { max-width: 380px; margin: 60px auto; background: #fff; border: 1px solid #dbe1ea;
            border-radius: 10px; padding: 26px; }
   .login input { margin-bottom: 10px; padding: 13px; font-size: 17px; }
-  .login button { width: 100%; padding: 14px; font-size: 17px; background: #1f5fd1; color: #fff;
+  .login button { width: 100%; padding: 14px; font-size: 17px; background: #0d6efd; color: #fff;
                   border: 0; font-weight: 600; }
   .err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 10px 12px;
          font-size: 15.5px; margin-bottom: 10px; }

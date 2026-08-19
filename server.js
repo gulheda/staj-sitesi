@@ -183,6 +183,13 @@ app.post("/api/set-password", auth(), (req, res) => {
   res.json({ ok: true });
 });
 
+// Tanıtım turu hesaba bağlıdır (tarayıcıya değil) — başka bir cihazda veya
+// tarayıcı verisi silinse bile öğrenciye ikinci kez açılmaz.
+app.post("/api/tur-gorundu", auth(), (req, res) => {
+  db.prepare("UPDATE users SET tur_gorundu=1 WHERE id=?").run(req.user.id);
+  res.json({ ok: true });
+});
+
 // Öğrenci ve komisyon çıkışı ayrı uçlardan yapılır — biri diğerinin
 // oturumuna dokunmaz (aynı tarayıcıda iki sekme açık olsa bile).
 function logoutRoute(cookieName) {
@@ -219,7 +226,7 @@ app.get("/api/me", auth(), (req, res) => {
   }
   res.json({
     user: { name: req.user.name, no: req.user.ogrenci_no, role: req.user.role,
-      sinif: req.user.sinif ?? 3, email: req.user.email },
+      sinif: req.user.sinif ?? 3, email: req.user.email, tur_gorundu: !!req.user.tur_gorundu },
     stage: deriveStage(appRow),
     application: appRow || null,
     applications: apps.map(a => ({ id: a.id, staj_no: a.staj_no, status: a.status, stage: deriveStage(a) })),
