@@ -14,7 +14,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html{background:var(--bg)}
   body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);
-       color:var(--ink);font-size:16.5px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+       color:var(--ink);font-size:18px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
   .frame{display:flex;flex-direction:column;flex:1}
 
   /* ── Üst bant: BAÜN lacivert, altın çizgiyle ── */
@@ -22,35 +22,35 @@
   .hwrap{width:100%;padding:0 40px;display:flex;align-items:center;gap:30px;height:76px}
   .logo{color:#fff;font-weight:700;font-size:20px;line-height:1.2;white-space:nowrap;
         font-family:Georgia,"Times New Roman",serif}
-  .logo small{display:block;font-weight:400;font-size:13.5px;color:#b9c8e0;letter-spacing:.02em;font-family:"Segoe UI",system-ui,sans-serif}
+  .logo small{display:block;font-weight:400;font-size:14.5px;color:#b9c8e0;letter-spacing:.02em;font-family:"Segoe UI",system-ui,sans-serif}
   nav{display:flex;gap:6px;flex:1;justify-content:center}
-  nav a{padding:11px 26px;color:rgba(255,255,255,.85);text-decoration:none;cursor:pointer;font-size:17px;border-radius:9px;font-weight:500}
+  nav a{padding:11px 26px;color:rgba(255,255,255,.85);text-decoration:none;cursor:pointer;font-size:18.5px;border-radius:9px;font-weight:500}
   nav a:hover{background:rgba(255,255,255,.12);color:#fff}
   nav a.active{background:#fff;color:var(--navy);font-weight:700}
-  header .muted{color:#b9c8e0;font-size:15px}
-  header .link{color:#fff;font-size:14.5px}
+  header .muted{color:#b9c8e0;font-size:16px}
+  header .link{color:#fff;font-size:15.5px}
 
   /* ── Profil menüsü ── */
   .uwrap{position:relative}
   .uchip{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.1);border:0;color:#fff;
-         padding:8px 15px 8px 9px;border-radius:99px;cursor:pointer;font-family:inherit;font-size:16px}
+         padding:8px 15px 8px 9px;border-radius:99px;cursor:pointer;font-family:inherit;font-size:17.5px}
   .uchip:hover{background:rgba(255,255,255,.18)}
   .uava{width:32px;height:32px;border-radius:50%;background:var(--gold);color:#12233d;font-weight:700;
-        font-size:14.5px;display:flex;align-items:center;justify-content:center}
+        font-size:15.5px;display:flex;align-items:center;justify-content:center}
   .umenu{display:none;position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--line);
          border-radius:9px;box-shadow:0 8px 24px rgba(10,20,40,.18);min-width:190px;z-index:50;overflow:hidden}
   .umenu.open{display:block}
   .umenu button{display:block;width:100%;text-align:left;background:#fff;border:0;padding:13px 18px;
-                font-size:17px;font-family:inherit;cursor:pointer;color:var(--ink)}
+                font-size:18.5px;font-family:inherit;cursor:pointer;color:var(--ink)}
   .umenu button:hover{background:#eef2f8}
 
   /* ── Bildirim zili: geçmiş bildirimler sayfayı kalabalıklaştırmaz,
         zile tıklayınca açılır; yeni bildirim varsa kırmızı sayaç yanar ── */
   .nbell{position:relative;font-size:18px;padding:8px 13px}
-  .ncount{position:absolute;top:1px;right:3px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;
+  .ncount{position:absolute;top:1px;right:3px;background:#dc2626;color:#fff;font-size:13px;font-weight:700;
           min-width:17px;height:17px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px}
   .nmenu{min-width:330px;max-width:420px}
-  .nmenu .nitem{padding:12px 16px;font-size:15px;border-bottom:1px solid var(--line);color:var(--ink);line-height:1.5}
+  .nmenu .nitem{padding:12px 16px;font-size:16px;border-bottom:1px solid var(--line);color:var(--ink);line-height:1.5}
   .nmenu .nitem.new{background:#f9f1de}
   .nmenu .nitem:last-child{border-bottom:0}
 
@@ -68,26 +68,26 @@
   .rehcard{border:1px solid var(--line);border-radius:9px;padding:18px 22px;background:#fff}
   .rehcard.now{border-color:var(--accent);box-shadow:0 0 0 2px rgba(31,95,209,.22)}
   .rehno{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--vurgu);color:var(--accent);
-         font-weight:700;align-items:center;justify-content:center;font-size:15.5px;margin-bottom:8px}
+         font-weight:700;align-items:center;justify-content:center;font-size:17px;margin-bottom:8px}
   .rehcard.done .rehno{background:#ecf7ef;color:var(--ok)}
   .rehcard.now .rehno{background:var(--accent);color:#fff}
-  .rehcard h3{font-size:16px;margin-bottom:5px}
-  .rehcard p{font-size:15.5px;color:#4b5768}
+  .rehcard h3{font-size:17.5px;margin-bottom:5px}
+  .rehcard p{font-size:17px;color:#4b5768}
   .helpgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:start}
   /* Rehber zaman çizelgesi */
   .tl{position:relative;margin-top:8px}
   .tl::before{content:"";position:absolute;left:16px;top:8px;bottom:8px;width:2px;background:var(--line)}
   .tl-row{position:relative;display:flex;gap:16px;padding:8px 0;cursor:pointer}
   .tl-dot{position:relative;z-index:1;flex-shrink:0;width:34px;height:34px;border-radius:50%;
-          background:#fff;border:2px solid #c7ced9;color:var(--mut);font-weight:700;font-size:15.5px;
+          background:#fff;border:2px solid #c7ced9;color:var(--mut);font-weight:700;font-size:17px;
           display:flex;align-items:center;justify-content:center}
   .tl-row.done .tl-dot{background:#ecf7ef;border-color:#16a34a;color:var(--ok)}
   .tl-row.now .tl-dot{background:var(--accent);border-color:var(--accent);color:#fff}
-  .tl-ad{font-weight:600;font-size:16px;padding-top:4px}
+  .tl-ad{font-weight:600;font-size:17.5px;padding-top:4px}
   .tl-row.done .tl-ad{color:var(--ok)}
   .tl-row.now .tl-ad{color:var(--accent)}
-  .tl-here{font-size:13.5px;background:var(--accent);color:#fff;border-radius:99px;padding:2px 11px;margin-left:6px;font-weight:700}
-  .tl-det{display:none;font-size:16px;color:#4b5768;margin:4px 0 6px;max-width:640px}
+  .tl-here{font-size:14.5px;background:var(--accent);color:#fff;border-radius:99px;padding:2px 11px;margin-left:6px;font-weight:700}
+  .tl-det{display:none;font-size:17.5px;color:#4b5768;margin:4px 0 6px;max-width:640px}
   .tl-row.open .tl-det{display:block}
   .cols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
   .colmain{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:46px 56px;
@@ -95,11 +95,11 @@
   .colmain.tone-warn{border-top-color:#d97706}
   .colmain.tone-ok{border-top-color:#16a34a}
   .sidecard{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:22px 26px;
-            margin-bottom:16px;font-size:16px;box-shadow:0 1px 2px rgba(10,25,50,.06)}
-  .sidecard h4{font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
-  .eyeb{font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px}
+            margin-bottom:16px;font-size:17.5px;box-shadow:0 1px 2px rgba(10,25,50,.06)}
+  .sidecard h4{font-size:15px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+  .eyeb{font-size:15px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px}
   .steps-v{list-style:none}
-  .steps-v li{padding:6px 0 6px 28px;position:relative;font-size:16px;color:#8b96a6}
+  .steps-v li{padding:6px 0 6px 28px;position:relative;font-size:17.5px;color:#8b96a6}
   .steps-v li::before{content:"·";position:absolute;left:8px}
   .steps-v li.done{color:var(--ok)} .steps-v li.done::before{content:"✓";left:4px}
   .steps-v li.now{color:var(--accent);font-weight:700;background:var(--vurgu);border-radius:8px}
@@ -108,7 +108,7 @@
 
   /* ── Staj sekmeleri: seçili olan koyu, fark hemen görülür ── */
   .tab{border:2px solid #c7ced9;background:#fff;color:#4b5768;padding:11px 22px;border-radius:10px;
-       cursor:pointer;font-family:inherit;font-size:16px;font-weight:600;transition:all .15s}
+       cursor:pointer;font-family:inherit;font-size:17.5px;font-weight:600;transition:all .15s}
   .tab:hover{border-color:var(--accent);color:var(--accent)}
   .tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
   .tab.add{border-style:dashed;font-weight:500}
@@ -116,7 +116,7 @@
   /* ── İki staj ayrımı sade tutulur: sayfa aynı kalır; 2. stajdayken
         yalnız üst şerit, seçili sekme, kartın üst çizgisi ve yandaki
         kutucuklar açık maviye döner — geçtiğini bilmen için yeterli. ── */
-  .stajbar{border-radius:10px;padding:10px 18px;margin-bottom:18px;font-weight:700;font-size:17px;
+  .stajbar{border-radius:10px;padding:10px 18px;margin-bottom:18px;font-weight:700;font-size:18.5px;
            background:var(--vurgu);color:var(--ink);border:1px solid #d8dce2}
   body.staj2 .stajbar{background:#b3492b;color:#fff;border-color:#b3492b}
   body.staj2 .tab.on{background:#b3492b;border-color:#b3492b}
@@ -127,10 +127,10 @@
   .tour{max-width:620px;margin:6px auto;text-align:center}
   .tour .ticon{font-size:64px;margin:6px 0 2px;line-height:1}
   .tour h1{margin-bottom:4px}
-  .tour .tsub{color:var(--mut);font-size:16px;margin-bottom:6px}
+  .tour .tsub{color:var(--mut);font-size:17.5px;margin-bottom:6px}
   .titems{text-align:left;max-width:470px;margin:14px auto 4px}
   .titem{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line);
-         font-size:16px;line-height:1.5}
+         font-size:17.5px;line-height:1.5}
   .titem .ti{font-size:24px;flex-shrink:0;width:36px;text-align:center;line-height:1.3}
   .titem:last-child{border-bottom:0}
   .tdots{display:flex;gap:8px;justify-content:center;margin:16px 0 4px}
@@ -139,37 +139,37 @@
 
   /* ── Tipografi: resmî/kurumsal ölçek — sıkı başlıklar, büyük harf
         aralıklı etiketler (form kimliği), gövde metni okunaklı kalır ── */
-  h1{font-size:25px;line-height:1.35;margin-bottom:10px;letter-spacing:-.1px;
+  h1{font-size:27px;line-height:1.35;margin-bottom:10px;letter-spacing:-.1px;
      font-family:Georgia,"Times New Roman",serif;font-weight:700;color:var(--navy)}
-  .sub{color:var(--mut);margin-bottom:22px;font-size:17px}
-  label{display:block;margin-top:18px;font-weight:700;font-size:13.5px;color:var(--mut);
+  .sub{color:var(--mut);margin-bottom:22px;font-size:18.5px}
+  label{display:block;margin-top:18px;font-weight:700;font-size:14.5px;color:var(--mut);
         text-transform:uppercase;letter-spacing:.06em}
-  .hint{font-size:15px;color:var(--mut);margin-top:5px}
-  .muted{color:var(--mut);font-size:15.5px}
-  .after{font-size:15.5px;color:var(--mut);margin-top:9px}
+  .hint{font-size:16px;color:var(--mut);margin-top:5px}
+  .muted{color:var(--mut);font-size:17px}
+  .after{font-size:17px;color:var(--mut);margin-top:9px}
   .center .after{text-align:center}
-  .why{font-size:15.5px;color:var(--warn);margin-top:6px;min-height:18px}
+  .why{font-size:17px;color:var(--warn);margin-top:6px;min-height:18px}
   .link{color:var(--accent);cursor:pointer;text-decoration:underline;background:none;border:none;
         font-size:inherit;font-family:inherit;padding:0}
 
   /* ── Butonlar ── */
   .big{display:inline-block;border:0;background:var(--accent);color:#fff;padding:14px 34px;min-width:250px;
-       font-size:16.5px;font-weight:600;border-radius:8px;cursor:pointer;font-family:inherit;
+       font-size:18px;font-weight:600;border-radius:8px;cursor:pointer;font-family:inherit;
        margin:12px 8px 4px 0;transition:background .15s;text-align:center;letter-spacing:.01em}
   .big:hover:not(:disabled){background:var(--accent-h)}
   .big:disabled{background:#c7ced9;cursor:not-allowed}
   .quiet{display:inline-block;border:1.5px solid #c7ced9;background:#fff;color:#3d4753;padding:12px 27px;
-         min-width:185px;font-size:16px;border-radius:8px;cursor:pointer;font-family:inherit;
+         min-width:185px;font-size:17.5px;border-radius:8px;cursor:pointer;font-family:inherit;
          margin:9px 8px 4px 0;text-align:center;transition:border-color .15s}
   .quiet:hover{border-color:var(--accent);color:var(--accent)}
   .center .big{display:block;margin-left:auto;margin-right:auto}
 
   /* ── Form öğeleri ── */
-  input,select,textarea{width:100%;max-width:580px;display:block;padding:12px 14px;border:1.5px solid #c7ced9;
-    font-size:16px;font-family:inherit;margin:6px 0 2px;border-radius:8px;background:#fff}
+  input,select,textarea{width:100%;max-width:580px;display:block;padding:14px 16px;border:1.5px solid #c7ced9;
+    font-size:17.5px;font-family:inherit;margin:6px 0 2px;border-radius:8px;background:#fff}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(31,95,209,.2)}
   .radio{display:flex;align-items:center;gap:13px;border:1.5px solid #c7ced9;padding:14px 16px;max-width:580px;
-         margin:10px 0;cursor:pointer;border-radius:9px;font-size:16px;background:#fff}
+         margin:10px 0;cursor:pointer;border-radius:9px;font-size:17.5px;background:#fff}
   .radio:hover{border-color:var(--accent)}
   .radio:has(input:checked){border-color:var(--accent);background:var(--vurgu);box-shadow:0 0 0 1px var(--accent)}
   .radio input{width:20px;height:20px;accent-color:var(--accent);flex-shrink:0}
@@ -179,19 +179,22 @@
   .prog .bar{height:8px;background:#e2e7ee;border-radius:4px;overflow:hidden}
   .prog .bar i{display:block;height:100%;background:#16a34a}
   .prog .bar i.blue{background:var(--accent)}
-  .prog .txt{display:flex;justify-content:space-between;font-size:15px;color:var(--mut);margin-top:7px}
-  .prog details{margin-top:6px;font-size:15.5px}
+  .prog .txt{display:flex;justify-content:space-between;font-size:16px;color:var(--mut);margin-top:7px}
+  .prog details{margin-top:6px;font-size:17px}
   .prog summary{cursor:pointer;color:var(--accent);list-style:none}
   .prog li{list-style:none;padding:3px 0;color:#8b96a6}
   .prog li.done{color:var(--ok)}
   .prog li.now{color:var(--ink);font-weight:600}
 
-  /* ── Bilgi kutuları ── */
-  .box{border-radius:8px;padding:18px 21px;margin:16px 0;font-size:17px;border:1px solid var(--line);background:#f1f4f8}
-  .box.warn{background:#fdf5e0;border-color:#ecd9a2}
-  .box.ok{background:#ecf7ef;border-color:#bfe3c9}
-  .box.info{background:#eef2f8;border-color:#d7dfe9}
-  .box.err{background:#fdeeee;border-color:#f2c4c4}
+  /* ── Bilgi notları: tam çerçeveli "uyarı kutusu" değil, sol renkli
+        çizgili sakin bir not — bir ekranda üst üste birden fazlası
+        olsa bile göz yormaz, birbirine rakip alarmlar gibi görünmez ── */
+  .box{border-radius:6px;padding:14px 20px;margin:14px 0;font-size:18.5px;line-height:1.6;
+       background:#f6f8fb;border-left:4px solid #c7ced9}
+  .box.warn{background:#fdf8ec;border-left-color:#d99a2b}
+  .box.ok{background:#eff9f1;border-left-color:#22a352}
+  .box.info{background:#eef3fa;border-left-color:var(--accent)}
+  .box.err{background:#fdeeee;border-left-color:#dc4c4c}
   /* ── Belge yükleme kartı: her belgenin ne olduğu, durumu ve yapılacak işlem
         tek bakışta görünsün — belirsiz/küçük "dosya seç" yazısı değil,
         büyük ikon + kalın başlık + renkli durum + net eylem etiketi. ── */
@@ -203,45 +206,45 @@
   .upload-ikon{font-size:32px;flex-shrink:0;line-height:1}
   .upload-metin{flex:1;min-width:0}
   .upload-ad{font-weight:700;font-size:18px;color:var(--ink)}
-  .upload-durum{font-size:15px;color:var(--accent-h);font-weight:700;margin-top:3px}
+  .upload-durum{font-size:16px;color:var(--accent-h);font-weight:700;margin-top:3px}
   .upload.done .upload-durum{color:#187a3c}
-  .upload-aksiyon{flex-shrink:0;background:var(--accent);color:#fff;font-weight:700;font-size:15px;
+  .upload-aksiyon{flex-shrink:0;background:var(--accent);color:#fff;font-weight:700;font-size:16px;
                   padding:10px 22px;border-radius:7px;white-space:nowrap}
   .upload:hover .upload-aksiyon{background:var(--accent-h)}
   .upload.done .upload-aksiyon{background:#fff;border:1.5px solid #16a34a;color:#166534}
-  .upload-aciklama{font-size:14.5px;color:var(--mut);margin:14px 0 0;padding-top:14px;
+  .upload-aciklama{font-size:15.5px;color:var(--mut);margin:14px 0 0;padding-top:14px;
                     border-top:1px solid rgba(15,61,120,.12);line-height:1.6}
   .check{display:flex;gap:13px;align-items:flex-start;padding:13px 0;border-bottom:1px solid #e7ebf1;
-         cursor:pointer;font-size:16px}
+         cursor:pointer;font-size:17.5px}
   .check input{width:22px;height:22px;margin-top:2px;accent-color:#16a34a;flex-shrink:0}
 
   /* ── Belge kartları ── */
   .doc{border:1px solid var(--line);border-radius:9px;padding:18px 22px;margin:10px 0;background:#fff}
   .doc-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .doc-ad{font-weight:700;font-size:16px}
-  .doc-indir{flex-shrink:0;background:var(--accent);color:#fff;font-weight:600;font-size:15.5px;
+  .doc-ad{font-weight:700;font-size:17.5px}
+  .doc-indir{flex-shrink:0;background:var(--accent);color:#fff;font-weight:600;font-size:17px;
              padding:9px 22px;border-radius:9px;text-decoration:none;transition:background .15s}
   .doc-indir:hover{background:var(--accent-h)}
-  .doc-sum{font-size:16px;color:#4b5768;margin-top:6px}
+  .doc-sum{font-size:17.5px;color:#4b5768;margin-top:6px}
   .doc-det{margin-top:8px}
-  .doc-det summary{cursor:pointer;color:var(--accent);font-size:15.5px}
-  .doc-det table{border-collapse:collapse;margin-top:8px;font-size:15.5px}
+  .doc-det summary{cursor:pointer;color:var(--accent);font-size:17px}
+  .doc-det table{border-collapse:collapse;margin-top:8px;font-size:17px}
   .doc-det td{padding:5px 12px 5px 0;vertical-align:top}
   .doc-det td:first-child{font-weight:600;white-space:nowrap}
 
   /* ── SSS / listeler ── */
   .qa{border:1px solid var(--line);border-radius:9px;padding:16px 20px;margin:10px 0;background:#fff}
-  .qa .q{font-weight:600;cursor:pointer;font-size:16px}
-  .qa .a{display:none;margin-top:8px;color:#4b5768;font-size:16px}
+  .qa .q{font-weight:600;cursor:pointer;font-size:17.5px}
+  .qa .a{display:none;margin-top:8px;color:#4b5768;font-size:17.5px}
   .qa.open .a{display:block}
   .center{text-align:center}
   .icon{font-size:44px;margin-bottom:10px}
-  .notif{background:#f9f1de;border:1px solid #e8d9b0;border-radius:10px;padding:12px 16px;font-size:15.5px;margin:7px 0}
+  .notif{background:#f9f1de;border:1px solid #e8d9b0;border-radius:10px;padding:12px 16px;font-size:17px;margin:7px 0}
   .backrow{margin-bottom:14px}
-  .backrow .link{text-decoration:none;font-size:16px}
+  .backrow .link{text-decoration:none;font-size:17.5px}
 
   footer{border-top:1px solid var(--line);background:#fff;margin-top:auto}
-  .fwrap{width:100%;padding:15px 40px;font-size:14.5px;color:#7c8797;
+  .fwrap{width:100%;padding:15px 40px;font-size:15.5px;color:#7c8797;
          display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
 
   /* ── Duyarlılık ── */
@@ -258,7 +261,7 @@
     .big,.quiet{display:block;width:100%;min-width:0}
     .logo small{display:none}
     .hwrap{padding:0 14px;height:60px;gap:10px}
-    nav a{padding:7px 12px;font-size:15.5px}
+    nav a{padding:7px 12px;font-size:17px}
   }
 </style>
 </head>
@@ -279,7 +282,7 @@
       </div>
       <div class="uwrap">
         <button class="uchip" onclick="toggleUmenu(event)">
-          <span class="uava" id="uava"></span><span id="uname"></span><span style="font-size:12px">▾</span>
+          <span class="uava" id="uava"></span><span id="uname"></span><span style="font-size:13px">▾</span>
         </button>
         <div class="umenu" id="umenu">
           <button onclick="go('profil')">👤 Profilim</button>

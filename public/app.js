@@ -254,8 +254,7 @@ function home() {
 
   if (s === "review") h = `
     <h1>Başvurun inceleniyor.</h1>
-    <p class="sub">Senden bir işlem beklenmiyor. Sonuçlanınca bildirimle haber vereceğiz.</p>
-    <div class="box info">Başvurular genellikle <b>5 iş günü</b> içinde incelenir.</div>
+    <p class="sub">Senden bir işlem beklenmiyor. Genellikle <b>5 iş günü</b> içinde sonuçlanır — bildirimle haber vereceğiz.</p>
     <div class="box info"><b>Bu arada yapabileceklerin:</b><br>
       • <button class="link" onclick="go('docs')">Defter sayfası şablonunu şimdiden indir</button><br>
       • <button class="link" onclick="go('guide')">Sürecin devamında seni neler bekliyor, göz at</button><br>
@@ -313,8 +312,8 @@ function home() {
     ${!a.sgk_checked ? `<div class="box warn">⚠ Staj başlamadan önce SGK kontrolünü işaretlememiştin. Sigortanın
       yapıldığından emin ol: e-Devlet → “SGK Tescil ve Hizmet Dökümü”.
       <button class="link" onclick="markSgk(true)">Kontrol ettim, kaydım var ✓</button></div>` : ""}
-    <div class="box warn"><b>Her gün defter sayfanı doldur ve imzalat.</b> Son güne bırakma — en çok yapılan hata bu.</div>
-    ${pr.done <= 2 ? '<div class="box info">🎬 <b>Vlog çekimine bugün başla:</b> videon stajın <b>ilk</b>, orta ve son günlerinden bölümler içermeli. Son gün birkaç fotoğrafla olmaz.</div>' : ""}
+    <div class="box warn"><b>Her gün defter sayfanı doldur ve imzalat.</b> Son güne bırakma — en çok yapılan hata bu.
+      ${pr.done <= 2 ? '<br><br>🎬 <b>Vlog çekimine bugün başla:</b> videon stajın <b>ilk</b>, orta ve son günlerinden bölümler içermeli. Son gün birkaç fotoğrafla olmaz.' : ""}</div>
     <button class="big" onclick="go('docs')">Defter sayfasını indir</button>`;
   }
 
