@@ -773,18 +773,28 @@ async function wSubmit() {
    Başvuru belgeleri: her tür (EK-1, EK-2, EK-3) kendi kutusuna yüklenir,
    böylece komisyon da öğrenci de hangisinin eksik olduğunu tek bakışta görür. */
 const BELGE_YUKLE = {
-  kabul: { kind: "kabul", ad: "Kabul belgesi (EK-1)",
+  kabul: { kind: "kabul", ad: "Kabul belgesi (EK-1)", ikon: "📄",
     info: "Kuruma imzalattığın form — imza <b>ve</b> kaşe olduğundan emin ol." },
-  ek2: { kind: "ek2", ad: "Ücret katkısı formu (EK-2)",
+  ek2: { kind: "ek2", ad: "Ücret katkısı formu (EK-2)", ikon: "📄",
     info: 'Bilgisayarda doldurulur; sen ve işletme yetkilisi imzalar. <a href="/belgeler/ek2-ucret-issizlik-fonu-formu.pdf" download>Boş formu indir</a>. Kamu kurumunda staj yapıyorsan gerekmez — "ücret ödenecek mi" sorusuna dönüp cevabını değiştirebilirsin.' },
-  ek3: { kind: "ek3", ad: "Öğrenci bilgi evrakı (EK-3)",
+  ek3: { kind: "ek3", ad: "Öğrenci bilgi evrakı (EK-3)", ikon: "📊",
     info: 'Ücret olsa da olmasa da her başvuruda doldurulur — Excel tablosunda kendi satırını doldurursun. <a href="/belgeler/staj-ucreti-fon-katkisi-basvuru-evraki.xlsx" download>Boş evrakı indir</a>.' },
 };
+// Her belge kartı tek bakışta üç şeyi anlatır: ne olduğu (ikon+ad),
+// durumu (yüklendi mi) ve yapılacak işlem (belirgin sağdaki etiket).
+// Açıklama metni yalnızca yüklenmemişken görünür — yüklendikten sonra gerekmez.
 function uploadBox(b, done) {
-  return `<label style="margin-top:14px">${b.ad}</label>
-    <div class="upload ${done ? "done" : ""}" id="up-${b.kind}" onclick="pickFile('${b.kind}')">
-      ${done ? "✓ Aldık · <u>değiştir</u>"
-        : `${b.info}<br>Buraya yükle: <u>dosya seç</u> <span class='muted'>· en fazla 10 MB</span>`}</div>`;
+  return `<div class="upload ${done ? "done" : ""}" id="up-${b.kind}" onclick="pickFile('${b.kind}')">
+    <div class="upload-top">
+      <span class="upload-ikon">${done ? "✅" : b.ikon}</span>
+      <div class="upload-metin">
+        <div class="upload-ad">${b.ad}</div>
+        <div class="upload-durum">${done ? "Yüklendi" : "Henüz yüklenmedi"}</div>
+      </div>
+      <span class="upload-aksiyon">${done ? "Değiştir" : "Dosya seç"}</span>
+    </div>
+    ${done ? "" : `<div class="upload-aciklama">${b.info}<br><span class="muted">PDF veya fotoğraf · en fazla 10 MB</span></div>`}
+  </div>`;
 }
 
 function pickFile(kind) {
