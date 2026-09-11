@@ -109,69 +109,37 @@ function lettersOnly(elm) {
   elm.value = elm.value.replace(/[0-9]/g, "");
 }
 
-// Kimlik doğrulama ekranlarının ortak sol paneli: kurumun kimliği ve süreç
-// önizlemesi — öğrenci daha giriş yapmadan "bu sistemde ne olacak"ı görür.
-const loginHeroHTML = () => `
-    <aside class="loginhero">
-      <svg class="loginhero-grid" aria-hidden="true">
-        <defs><pattern id="lhp" width="26" height="26" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1.5" fill="rgba(255,255,255,.16)"/></pattern></defs>
-        <rect width="100%" height="100%" fill="url(#lhp)"/>
-      </svg>
-      <div class="loginhero-glow"></div>
-      <div class="loginhero-in">
-        <span class="loginhero-eyeb">Balıkesir Üniversitesi</span>
-        <h1 class="loginhero-h">Staj Portalı</h1>
-        <p class="loginhero-dept">Bilgisayar Mühendisliği Bölümü</p>
-        <p class="loginhero-tag">Başvurudan teslime kadar staj sürecinin tamamı tek yerde.
-          Her an ne yapman gerektiğini bilirsin.</p>
-        <ul class="loginhero-steps">
-          <li><span class="lhs-i">🏢</span><span>Staj yeri bul</span></li>
-          <li><span class="lhs-i">📄</span><span>Belgeleri yükle</span></li>
-          <li><span class="lhs-i">✅</span><span>Komisyon onaylasın</span></li>
-          <li><span class="lhs-i">🎓</span><span>Stajını tamamla</span></li>
-        </ul>
-      </div>
-    </aside>`;
-
 // Tek form, tek yol: ilk kez giren şifre alanına TC'sini yazar, sistem onu
 // tanıyıp şifre oluşturmaya götürür. Ayrı bir "ilk giriş" ekranı yoktur.
+// Sade tek kutu: kullanıcı adı + şifre, başka hiçbir şey.
 function loginScreen(msg) {
   $("topbar").style.display = "none";
   document.body.classList.remove("staj2");
   const sonNo = localStorage.getItem("sonNo") || "";
-  el(`<div class="loginwrap" data-hero>
-    ${loginHeroHTML()}
-    <div class="loginform">
-      <div class="loginform-in">
-        <h2 class="loginform-h">Giriş yap</h2>
-        <p class="sub">Öğrenci numaran ve şifrenle devam et.</p>
-        ${msg ? errBox(msg) : ""}
-        <label>Öğrenci numaran</label>
-        <div class="ifield">
-          <span class="ifield-i">👤</span>
-          <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Sadece rakam"
-            autocomplete="username" value="${sonNo}" oninput="digitsOnly(this,12)"
-            onkeydown="if(event.key==='Enter')$('pw').focus()">
-        </div>
-        <label>Şifren</label>
-        <div class="ifield">
-          <span class="ifield-i">🔒</span>
-          <input id="pw" type="password" maxlength="64" placeholder="Şifren" style="padding-right:46px"
-            autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-          <button type="button" class="ifield-eye"
-            onclick="const p=$('pw');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁':'🙈'"
-            title="Şifreyi göster/gizle">👁</button>
-        </div>
-        <p class="hint">İlk kez giriyorsan: şifre yerine <b>TC kimlik numaranı</b> yaz.</p>
-        <button class="big" id="loginBtn" onclick="doLogin()" style="width:100%;min-width:0">Giriş yap</button>
-        <p class="center" style="margin-top:14px">
-          <button class="link" style="font-size:14.5px"
-            onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button>
-        </p>
+  el(`
+    <div style="max-width:420px;margin:60px auto">
+      <h1 style="text-align:center">BAÜN Staj Portalı</h1>
+      <p class="sub" style="text-align:center">Öğrenci numaran ve şifrenle giriş yap.</p>
+      ${msg ? errBox(msg) : ""}
+      <label>Öğrenci numaran</label>
+      <input id="no" type="text" inputmode="numeric" maxlength="12" placeholder="Sadece rakam"
+        autocomplete="username" value="${sonNo}" oninput="digitsOnly(this,12)"
+        onkeydown="if(event.key==='Enter')$('pw').focus()">
+      <label>Şifren</label>
+      <div style="position:relative">
+        <input id="pw" type="password" maxlength="64" placeholder="Şifren" style="padding-right:46px"
+          autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;font-size:18px;padding:9px 10px"
+          onclick="const p=$('pw');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'👁':'🙈'"
+          title="Şifreyi göster/gizle">👁</button>
       </div>
-    </div>
-  </div>`);
+      <p class="hint">İlk kez giriyorsan: şifre yerine <b>TC kimlik numaranı</b> yaz.</p>
+      <button class="big" id="loginBtn" onclick="doLogin()" style="width:100%;min-width:0">Giriş yap</button>
+      <p class="center" style="margin-top:14px">
+        <button class="link" style="font-size:14.5px"
+          onclick="alert('Pilot sürümde şifre sıfırlama bölüm sekreterliği üzerinden yapılıyor.')">Şifremi unuttum</button>
+      </p>
+    </div>`);
   ($("no").value ? $("pw") : $("no")).focus();
 }
 
@@ -191,24 +159,17 @@ async function doLogin() {
 
 function setPassScreen(name, msg) {
   $("topbar").style.display = "none";
-  el(`<div class="loginwrap" data-hero>
-    ${loginHeroHTML()}
-    <div class="loginform">
-      <div class="loginform-in">
-        <h2 class="loginform-h">Merhaba ${name.split(" ")[0]} 👋</h2>
-        <p class="sub">Kimliğini doğruladık. Artık kendine bir şifre belirle — bundan sonra TC numaranla değil, bu şifreyle gireceksin.</p>
-        ${msg ? errBox(msg) : ""}
-        <label>Yeni şifren</label>
-        <div class="ifield">
-          <span class="ifield-i">🔒</span>
-          <input id="pw1" type="password" maxlength="64" placeholder="En az 8 karakter" autocomplete="new-password"
-            onkeydown="if(event.key==='Enter')doSetPass()">
-        </div>
-        <p class="hint">En az 8 karakter. Unutmayacağın ama tahmin edilemeyecek bir şey seç.</p>
-        <button class="big" onclick="doSetPass()" style="width:100%;min-width:0">Şifremi kaydet ve başla</button>
-      </div>
-    </div>
-  </div>`);
+  el(`
+    <div style="max-width:420px;margin:60px auto">
+      <h1 style="text-align:center">Merhaba ${name.split(" ")[0]} 👋</h1>
+      <p class="sub" style="text-align:center">Kimliğini doğruladık. Artık kendine bir şifre belirle — bundan sonra TC numaranla değil, bu şifreyle gireceksin.</p>
+      ${msg ? errBox(msg) : ""}
+      <label>Yeni şifren</label>
+      <input id="pw1" type="password" maxlength="64" placeholder="En az 8 karakter" autocomplete="new-password"
+        onkeydown="if(event.key==='Enter')doSetPass()">
+      <p class="hint">En az 8 karakter. Unutmayacağın ama tahmin edilemeyecek bir şey seç.</p>
+      <button class="big" onclick="doSetPass()" style="width:100%;min-width:0">Şifremi kaydet ve başla</button>
+    </div>`);
   $("pw1").focus();
 }
 
